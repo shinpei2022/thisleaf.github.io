@@ -1,0 +1,6 @@
+// https://github.com/andanteyk/ElectronicObserver/blob/develop/ElectronicObserver/Other/Information/apilist.txt
+types: api_mst_slotitem_equiptype
+
+shipClass: api_get_member/picture_book
+
+shipType: api_mst_stype/api_name

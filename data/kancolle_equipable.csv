@@ -63,3 +63,5 @@ comment,shipNames,classNames,shipTypes,slots,equipable,equipIds,equipCategories,
 ,能代改二,,,4,0,,魚雷,0,2021/02/14
 増設潜水艦魚雷,,,潜水系,-1,1,442|443,,0,2022/02/22
 三式弾,,,重巡系|戦艦|巡洋戦艦|航空戦艦系,*,1,,対空強化弾,1,2023/07/07
+英国大型電探,,Nelson級|Queen Elizabeth級|Ark Royal級|Illustrious級|Town級,,-1,1,527|528,,1,2024/06/24
+独国大型電探,,Bismarck級|Admiral Hipper級,,-1,1,147,,0,2024/06/24
