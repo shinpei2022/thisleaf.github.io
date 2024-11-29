@@ -2,7 +2,7 @@
 
 import * as Global from "./kc_support_global.mjs";
 import * as Util from "./utility.mjs";
-import {DOM, NODE, ELEMENT, TEXT, EL, _T} from "./utility.mjs";
+import { DOM, NODE, ELEMENT, TEXT, EL, _T, HTML } from "./utility.mjs";
 import {SupportShip, SupportShipData} from "./kc_support_ship.mjs";
 import {EquipmentDatabase} from "./kc_equipment.mjs";
 import {DOMDialog} from "./dom_dialog.mjs";
@@ -10,6 +10,7 @@ import {DOMDialog} from "./dom_dialog.mjs";
 export {
 	SupportFleet,
 	SupportFleetTab,
+	ImportDeckDialog,
 };
 
 
@@ -746,6 +747,233 @@ class SupportFleetTab extends EventTarget {
 	}
 };
 
+// ImportDeckDialog --------------------------------------------------------------------------------
+// データ読み込みダイアログ
+// kc_support_equip.mjs > OwnConvertDialog が雛型
+Object.assign(ImportDeckDialog.prototype = Object.create(DOMDialog.prototype), {
+	e_select: null,
+	e_textarea: null,
+	e_confirm: null,
+
+	// デッキビルダー用
+	e_deckbuilder_div: null,
+	e_deckbuilder_fleets: null, // 0から始まるarray
+
+	create: ImportDeckDialog_create,
+
+	parse_deckbuilder_text: ImportDeckDialog_parse_deckbuilder_text,
+
+	adjust_the_check_status: ImportDeckDialog_adjust_the_check_status,
+
+	ev_close: ImportDeckDialog_ev_close,
+});
+
+/**
+ * @constructor
+ * @param form_object
+ */
+function ImportDeckDialog() {
+	DOMDialog.call(this);
+}
+
+function ImportDeckDialog_create() {
+	DOMDialog.prototype.create.call(this, "modal", "データの読み込み", true);
+
+	this.e_inside.classList.add("convert");
+
+	let ok_btn, cancel_btn;
+	this.e_deckbuilder_fleets = new Array;
+
+	NODE(this.e_contents, [
+		NODE(ELEMENT("div", "", "option"), [
+			this.e_textarea = ELEMENT("textarea", "", "code_area"),
+		]),
+
+		this.e_deckbuilder_div = NODE(ELEMENT("div", "", "option"), [
+			NODE(ELEMENT("label"), [
+				this.e_deckbuilder_fleets[0] = ELEMENT("input", { type: "checkbox", checked: true }),
+				TEXT("第1"),
+			]),
+			NODE(ELEMENT("label"), [
+				this.e_deckbuilder_fleets[1] = ELEMENT("input", { type: "checkbox", checked: true }),
+				TEXT("第2"),
+			]),
+			NODE(ELEMENT("label"), [
+				this.e_deckbuilder_fleets[2] = ELEMENT("input", { type: "checkbox" }),
+				TEXT("第3"),
+			]),
+			NODE(ELEMENT("label"), [
+				this.e_deckbuilder_fleets[3] = ELEMENT("input", { type: "checkbox" }),
+				TEXT("第4"),
+			]),
+			NODE(ELEMENT("div", "", "option_text"), [
+				HTML(
+					'<a href="http://kancolle-calc.net/deckbuilder.html" target="_blank">艦隊シミュレーター＆デッキビルダー</a>'
+					+ " さんで扱われるデッキビルダー形式データを、支援艦隊メンバーとして反映します(未対応の艦は空欄になります)"
+				),
+			]),
+		]),
+
+		NODE(ELEMENT("div", "", "button_div"), [
+			ok_btn = ELEMENT("button", { textContent: "読み込む" }),
+			cancel_btn = ELEMENT("button", { textContent: "キャンセル" }),
+		]),
+	]);
+
+	// event
+	this.addEventListener("show", e => {
+		this.move_to(this.get_max_x() / 2, this.get_max_y() / 2);
+	});
+
+	this.e_textarea.addEventListener('input', (e) => this.adjust_the_check_status(e.target.value));
+
+	this.add_dialog_button(ok_btn, "ok");
+	this.add_dialog_button(cancel_btn, "cancel");
+
+	this.addEventListener("cancel", e => {
+		if (e.detail == "outside") e.preventDefault();
+	});
+	this.addEventListener("close", e => this.ev_close(e));
+}
+
+/* デッキビルダー形式
+{
+	version: 4,
+	// 艦隊 f1, f2, f3, f4
+	f1: {
+		s1: {
+			id: '100', lv: 40, luck: -1,
+			items:{ // 装備
+				// id: ID, rf: 改修, mas: 熟練度
+				i1:{id:1, rf: 4, mas:7},
+				i2:{id:3, rf: 0},
+				...,
+				ix:{id:43} // 増設
+			}
+		},
+		s2:{...}, ...
+	}, ...
+	// 基地 a1, a2, a3
+	a1: {
+		mode: 1,
+		items: { // 装備、艦隊と同じ
+			i1: {id: 403, rf: 0, mas: 2},
+			...
+			i4: {...},
+		},
+	}, ...
+}
+load_fleets: int -> bool, どの艦隊を読み込むか(0: 第1, 1: 第2, ..., 4: 基地1, 5: 基地2, 6: 基地3)
+*/
+function ImportDeckDialog_parse_deckbuilder_text(text, load_fleets) {
+	let data = [];
+
+	// 空データ
+	if (/^\s*$/.test(text)) return data;
+
+	let json = null;
+	try {
+		json = JSON.parse(text);
+	} catch (err) {
+		return null;
+	}
+
+	// version: 4 がついている形式のみ
+	if (json.version != 4) return null;
+
+	for (let f = 1; f <= 4; f++) {
+		let fleet = json["f" + f];
+		if (!load_fleets[f - 1] || !fleet) continue;
+
+		let fleet_data = {
+			name: "",
+			ships: [],
+		};
+		for (let s = 1; s <= 6; s++) {
+			let ship = fleet["s" + s];
+			const tempData = new SupportShipData("");
+			// id, lv, 運, 増設有無, 優先度 設定
+			const ship_data = {
+				...tempData,
+				ship_id: String(ship?.id || ""),
+				input_level: ship?.lv,
+				input_luck: ship?.luck,
+				exslot_available: ship?.exa ? 1 : 0,
+				priority: 3
+			};
+			fleet_data.ships.push(ship_data);
+		}
+		data.push(fleet_data);
+	}
+
+	return data;
+}
+
+// 艦隊形式(key: t)によって読み込みそうな艦隊を自動セット
+function ImportDeckDialog_adjust_the_check_status(text) {
+	// 空データ
+	if (/^\s*$/.test(text)) return;
+
+	let json = null;
+	try {
+		json = JSON.parse(text);
+	} catch (err) {
+		return;
+	}
+
+	// version: 4 がついている形式のみ
+	if (json.version != 4) return;
+
+	if (Number.isInteger(json.f1?.t)) {
+		const fleet_type = Number(json.f1?.t);
+		let enable_fleets = [];
+		switch (fleet_type) {
+			case 0: // 通常艦隊
+				enable_fleets.push(0, 1);
+				break;
+			case 1:
+			case 2:
+			case 3: // 連合艦隊
+				enable_fleets.push(2, 3);
+				break;
+		}
+
+		for (let i = 0; i < 4; i++) {
+			if (enable_fleets.includes(i)) {
+				this.e_deckbuilder_fleets[i].checked = true;
+			} else {
+				this.e_deckbuilder_fleets[i].checked = false;
+			}
+		}
+	}
+}
+
+// 呼び出しもとにデータを返したいので、exitイベント使わず、別に新たな「import」イベントを使う
+function ImportDeckDialog_ev_close(e) {
+	if (e.detail == "ok") {
+
+		let text = this.e_textarea.value;
+
+		let fleets = this.e_deckbuilder_fleets.map(e => e.checked);
+
+		if (!fleets.some(f => f)) {
+			e.preventDefault();
+			DOMDialog.alert("読み込む艦隊がありません", "読み込み(デッキビルダー)");
+			return;
+		}
+
+		let data = this.parse_deckbuilder_text(text, fleets);
+
+		if (!data) {
+			e.preventDefault();
+			DOMDialog.alert("データの読み込みに失敗しました", "読み込み(デッキビルダー)");
+			return;
+		}
+
+		const event = new CustomEvent("import", { detail: data });
+		this.dispatchEvent(event);
+	}
+}
 
 class FleetOptionDialog extends DOMDialog {
 	get fleet_count(){

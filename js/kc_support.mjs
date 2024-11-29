@@ -31,6 +31,7 @@ import {
 	OwnResetDialog,
 	OwnConvertDialog,
 } from "./kc_support_equip.mjs";
+import { ImportDeckDialog } from "./kc_support_fleet.mjs";
 import {
 	OutputDeckDialog,
 } from "./kc_support_output.mjs";
@@ -144,6 +145,7 @@ function kancolle_support_init(){
 	
 	_click("reset_dialog", ev_click_reset_dialog);
 	_click("convert_dialog", ev_click_convert_dialog);
+	_click("import_deck_dialog", ev_click_import_deck_dialog);
 	_click("output_deck_dialog", ev_click_output_deck_dialog);
 	
 	_click("header_tab", ev_click_header_tab);
@@ -674,6 +676,19 @@ function ev_click_convert_dialog(){
 	dialog.addEventListener("exit", e => {
 		if (e.detail == "ok") save_userdata();
 		dialog.dispose();
+	});
+	dialog.show();
+}
+
+// データ読込(支援艦隊読込)
+function ev_click_import_deck_dialog() {
+	let dialog = new ImportDeckDialog();
+	dialog.create();
+	dialog.addEventListener("exit", e => dialog.dispose());
+	dialog.addEventListener("import", e => { // importイベントでデータを受け取る
+		support_fleet_tab.setFleetsJson(e.detail);
+		save_userdata();
+		// dialog.disposeはexitイベントのほうでやらせる
 	});
 	dialog.show();
 }
