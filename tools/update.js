@@ -1,3 +1,5 @@
+// THANKS BY momemi : https://gist.github.com/X-20A/6e53f8a5181f1dcb7ec15159a402c891
+
 (async () => {
     const ac_url = 'https://firebasestorage.googleapis.com/v0/b/development-74af0.appspot.com/o/master.json?alt=media';
     const sf_ships_url = 'https://raw.githubusercontent.com/shinpei2022/thisleaf.github.io/master/data/kancolle_shiplist.csv';
@@ -48,21 +50,21 @@
     function exportShips(orders) {
         if (!Array.isArray(orders)) throw new Error('配列で渡してください');
         const orders_length = orders.length;
-        if(!orders_length) return;
-        
+        if (!orders_length) return;
+
         const res = [];
         console.group('ships\' url');
-        for(let i = 0;i < orders_length;i++) {
+        for (let i = 0; i < orders_length; i++) {
             const order = orders[i];
             const ship = ac_ships.find((item) => item.name === order);
-            if(!ship) {
+            if (!ship) {
                 console.log(`no hit => ${order}`);
                 continue;
             }
-            
+
             const speed = ship.speed === 10 ? '高速' : '低速';
             let range = 0;
-            switch(ship.range) {
+            switch (ship.range) {
                 case 1:
                     range = '短';
                     break;
@@ -78,19 +80,33 @@
             }
             let upgrade = '';
             const before = ac_ships.find((item) => item.before === ship.id);
-            if(before) {
+            if (before) {
                 upgrade = `${before.name}(${ship.next_lv})`;
             }
             const new_json = {
-                numberString: '<numberString>',
+                numberString: 'N' + ship.album,
                 shipId: ship.id,
+                rarity: undefined,
                 name: ship.name,
                 kana: ship.yomi,
                 className: '<className>',
-                shipTypeI: '<shipTypeI>',
+                classNumber: undefined,
+                shipType: shipTypeToString(ship.type),
+                shipTypeI: undefined,
                 HP: ship.hp,
+                firepowerMin: undefined,
                 firepowerMax: ship.fire,
+                armorMin: undefined,
+                armorMax: undefined,
+                torpedoMin: undefined,
+                torpedoMax: undefined,
+                evasion0: undefined,
+                evasion99: undefined,
+                antiairMin: undefined,
+                antiairMax: undefined,
                 aircraft: ship.slots.reduce((acc, num) => acc + num, 0),
+                ASW0: undefined,
+                ASW99: undefined,
                 speed: speed,
                 LoS0: ship.min_scout,
                 LoS99: ship.scout,
@@ -107,8 +123,8 @@
                 space5: ship.slots[4] || 0,
                 upgrade: upgrade,
                 lastModified: getCurrentDate(),
-            };
-            
+            }
+
             res.push(new_json);
             console.log(`https://wikiwiki.jp/kancolle/${ship.name
                 .replaceAll(' ', '%20') // スペースをエンコード
@@ -131,7 +147,7 @@
         for (let i = 0; i < orders_length; i++) {
             const order = orders[i];
             const item = ac_items.find((item) => item.name === order);
-            
+
             if (!item) {
                 console.log(`no hit => ${order}`);
                 continue;
@@ -140,8 +156,10 @@
 
             const new_json = {
                 number: item.id,
+                rarityString: undefined,
+                rarityStar: undefined,
                 name: item.name,
-                category: '<category>',
+                category: itemTypeToString(item.type),
                 firepower: item.fire,
                 torpedo: item.torpedo,
                 bombing: item.bomber,
@@ -297,7 +315,7 @@
         for (let i = 0; i < ac_items.length; i++) {
             const ac_item = ac_items[i];
 
-            if(ac_item.id > 1500) break;
+            if (ac_item.id > 1500) break;
 
             const sf_item = sf_items.find(item => item.number == ac_item.id);
             if (!sf_item) {
@@ -428,7 +446,7 @@
 
     function translateRange(type) {
         let res = 0;
-        switch(type) {
+        switch (type) {
             case '短':
                 res = 1;
                 break;
@@ -443,6 +461,100 @@
                 break;
         }
         return res;
+    }
+
+    function itemTypeToString(type) {
+        // api_mst_slotitem_equiptype 
+        const itemNames = {
+            1: '小口径主砲',
+            2: '中口径主砲',
+            3: '大口径主砲',
+            4: '副砲',
+            5: '魚雷',
+            6: '艦上戦闘機',
+            7: '艦上爆撃機',
+            8: '艦上攻撃機',
+            9: '艦上偵察機',
+            10: '水上偵察機',
+            11: '水上爆撃機',
+            12: '小型電探',
+            13: '大型電探',
+            14: 'ソナー',
+            15: '爆雷',
+            16: '追加装甲',
+            17: '機関部強化',
+            18: '対空強化弾',
+            19: '対艦強化弾',
+            20: 'VT信管',
+            21: '対空機銃',
+            22: '特殊潜航艇',
+            23: '応急修理要員',
+            24: '上陸用舟艇',
+            25: 'オートジャイロ',
+            26: '対潜哨戒機',
+            27: '追加装甲(中型)',
+            28: '追加装甲(大型)',
+            29: '探照灯',
+            30: '簡易輸送部材',
+            31: '艦艇修理施設',
+            32: '潜水艦魚雷',
+            33: '照明弾',
+            34: '司令部施設',
+            35: '航空要員',
+            36: '高射装置',
+            37: '対地装備',
+            38: '大口径主砲(II)',
+            39: '水上艦要員',
+            40: '大型ソナー',
+            41: '大型飛行艇',
+            42: '大型探照灯',
+            43: '戦闘糧食',
+            44: '補給物資',
+            45: '水上戦闘機',
+            46: '特型内火艇',
+            47: '陸上攻撃機',
+            48: '局地戦闘機',
+            49: '陸上偵察機',
+            50: '輸送機材',
+            51: '潜水艦装備',
+            52: '',
+            53: '大型陸上機',
+            56: '噴式戦闘機',
+            57: '噴式戦闘爆撃機',
+            58: '噴式攻撃機',
+            59: '噴式偵察機',
+            93: '大型電探(II)',
+            94: '艦上偵察機(II)',
+        };
+        return itemNames[type] || '不明';
+    }
+
+    function shipTypeToString(type) {
+        const shipNames = {
+            1: '海防艦',
+            2: '駆逐艦',
+            3: '軽巡洋艦',
+            4: '重雷装巡洋艦',
+            5: '重巡洋艦',
+            6: '航空巡洋艦',
+            7: '軽空母',
+            8: '巡洋戦艦',
+            9: '戦艦',
+            10: '航空戦艦',
+            11: '正規空母',
+            12: '超弩級戦艦',
+            13: '潜水艦',
+            14: '潜水空母',
+            15: '補給艦', // 敵
+            16: '水上機母艦',
+            17: '揚陸艦',
+            18: '装甲空母',
+            19: '工作艦',
+            20: '潜水母艦',
+            21: '練習巡洋艦',
+            22: '補給艦', // 味方
+        };
+        return shipNames[type] || '不明';
     }
 
     function translateShipType(types) {
@@ -516,5 +628,7 @@
     window.exportShips = exportShips;
     window.exportItems = exportItems;
     window.searchEquipable = searchEquipable;
+    window.shipsDiff = shipsDiff;
+    window.itemsDiff = itemsDiff;
     window.docs = docs;
 })();
