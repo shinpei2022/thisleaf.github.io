@@ -34,7 +34,7 @@ const SHIP_GROUPING_DEF = [
 	{viewname: "戦艦 (North Carolina級)"},
 	{viewname: "戦艦 (South Dakota級)"},
 	{viewname: "戦艦 (Iowa級)"},
-	{viewname: "戦艦 (イギリス)", keys: ["戦艦 (Nelson級)", "戦艦 (Queen Elizabeth級)"]},
+	{viewname: "戦艦 (イギリス)", keys: ["戦艦 (Nelson級)", "戦艦 (Queen Elizabeth級)", "戦艦 (Courageous級)"]},
 	{viewname: "戦艦 (ドイツ)", keys: ["戦艦 (Bismarck級)"]},
 	{viewname: "戦艦 (イタリア)", keys: ["戦艦 (Conte di Cavour級)", "戦艦 (V.Veneto級)"]},
 	{viewname: "戦艦 (フランス)", keys: ["戦艦 (Richelieu級)"]},
@@ -54,7 +54,7 @@ const SHIP_GROUPING_DEF = [
 	{viewname: "正規空母 (アメリカ)", keys: [
 		"正規空母 (Essex級)", "正規空母 (Lexington級)", "正規空母 (Ranger級)", "正規空母 (Yorktown級)",
 	]},
-	{viewname: "正規空母 (イギリス)", keys: ["正規空母 (Ark Royal級)", "正規空母 (Illustrious級)"]},
+	{viewname: "正規空母 (イギリス)", keys: ["正規空母 (Ark Royal級)", "正規空母 (Illustrious級)", "正規空母 (Glorious級)"]},
 	{viewname: "正規空母 (ドイツ)", keys: ["正規空母 (Graf Zeppelin級)"]},
 	{viewname: "正規空母 (イタリア)", keys: ["正規空母 (Aquila級)"]},
 	{viewname: "正規空母 (フランス)", keys: ["正規空母 (Béarn級)"]},
