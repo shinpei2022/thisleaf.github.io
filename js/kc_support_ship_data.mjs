@@ -942,6 +942,7 @@ function SupportShipData_get_json_deckbuilder(){
 		id: String(ship?.shipId || "0"),
 		lv: this.level >= 0 ? this.level : 99,
 		luck: this.luck >= 0 ? this.luck : -1,
+		exa: this.exslot_available,
 		items: {},
 	};
 	
