@@ -13,6 +13,9 @@ import {
 	EquipmentSlot,
 	EquipmentBonusData,
 	EquipmentBonus,
+	attach_star_conditions,
+	equipable_id_star,
+	equipable_star_min,
 } from "./kc_equipment.mjs";
 import {
 	SupportShipData,
@@ -51,6 +54,8 @@ class SASlotData {
 		this.slot = ssd.allslot_equipment[slot_index];
 		this.eqab = ssd.allslot_equipables[slot_index];
 		this.eqab2 = Object.assign({}, this.eqab, {"0": 1}); // "装備なし" も "装備可"
+		// 改修値条件は非列挙プロパティのためコピーされない　明示的に引き継ぐ
+		attach_star_conditions(this.eqab2, this.eqab.star_conditions);
 		this.is_exslot = ssd.exslot_available && slot_index == ssd.allslot_equipment.length - 1;
 		this.is_fixed = ssd.allslot_fixes[slot_index];
 		/**
@@ -244,7 +249,8 @@ function SupportFleetData_calculate_common(type){
 			if (sa.is_fixed) continue;
 			
 			// このスロットに対応する装備
-			let slot_list = list.filter(x => sa.eqab[x.id]);
+			// 改修値条件つきの場合、条件を満たしうる個体を持つもののみ
+			let slot_list = list.filter(x => equipable_id_star(sa.eqab, x.id, x.star_max));
 			// 上位互換装備への参照
 			let slot_uppers = new Array;
 			
@@ -276,8 +282,16 @@ function SupportFleetData_calculate_common(type){
 			// 上位互換がスロットの数以上存在すれば、その装備は使用しなくて良い
 			// これで除外された装備を上位互換に持つ装備も常に除外である
 			if (SA_LIGHT_EXCLUSION) {
+				// 改修値条件つき装備は、条件を満たす個体のみを数える
+				let _usable_count = own => {
+					let req = equipable_star_min(sa.eqab, own.id);
+					if (req <= 0) return own.remaining;
+					let m = 0;
+					for (let s=req; s<own.rem_counts.length; s++) m += own.rem_counts[s];
+					return m;
+				};
 				for (let n=0; n<slot_list.length; n++) {
-					let count = slot_uppers[n].reduce((a, c) => a + c.remaining, 0);
+					let count = slot_uppers[n].reduce((a, c) => a + _usable_count(c), 0);
 					if (count >= saslots_length) {
 						slot_list[n] = null;
 						slot_uppers[n] = null;
@@ -305,7 +319,8 @@ function SupportFleetData_calculate_common(type){
 			let slots = equivalents[equivalents.length - 1 - j];
 			let rep = slots[0];
 			if ( Util.equal_array(rep.eqab_owns, sa.eqab_owns) &&
-				Util.equal_array(rep.upper_owns_array, sa.upper_owns_array, Util.equal_array_int) )
+				Util.equal_array(rep.upper_owns_array, sa.upper_owns_array, Util.equal_array_int) &&
+				rep.eqab_owns.every(own => equipable_star_min(rep.eqab, own.id) == equipable_star_min(sa.eqab, own.id)) )
 			{
 				slots.push(sa);
 				continue EQSLOT;
@@ -460,6 +475,10 @@ function SupportFleetData_calculate_common(type){
 			}
 
 			if (resolved_own) {
+				// 改修値条件つきの場合、最小改修値の個体が条件を満たさないなら決定しない
+				let req = equipable_star_min(sa.eqab, resolved_own.id);
+				if (req > 0 && resolved_own.star_min < req) continue;
+
 				// 装備変更
 				// 現在、非固定で決定されていないスロットはカウント外
 				// カウントしながら装備を設定する
@@ -501,8 +520,9 @@ function SupportFleetData_calculate_common(type){
 		let sa = eqs[0];
 		if (common.saslots_resolved?.indexOf(sa) >= 0) return;
 
-		sa.eqab = sa.eqab_owns.reduce((a, c) => (a[c.id] = 1, a), {});
-		sa.eqab2 = Object.assign({"0": 1}, sa.eqab);
+		let sconds = sa.eqab.star_conditions;
+		sa.eqab = attach_star_conditions(sa.eqab_owns.reduce((a, c) => (a[c.id] = 1, a), {}), sconds);
+		sa.eqab2 = attach_star_conditions(Object.assign({"0": 1}, sa.eqab), sconds);
 		for (let i=1; i<eqs.length; i++) {
 			eqs[i].eqab = sa.eqab;
 			eqs[i].eqab2 = sa.eqab2;
@@ -652,7 +672,7 @@ function SupportFleetData_annealing(iteration_scale = 1){
 					let b = a_swap[k];
 					let b_id = b.slot.equipment_id;
 					let b_star = b.slot.improvement;
-					if ((b_id != a_id || b_star != a_star) && sa.eqab2[b_id] && b.eqab2[a_id]) {
+					if ((b_id != a_id || b_star != a_star) && equipable_id_star(sa.eqab2, b_id, b_star) && equipable_id_star(b.eqab2, a_id, a_star)) {
 						swap_sa = b;
 						break SELECT;
 					}
@@ -664,7 +684,7 @@ function SupportFleetData_annealing(iteration_scale = 1){
 					let b = a_swap[i];
 					let b_id = b.slot.equipment_id;
 					let b_star = b.slot.improvement;
-					if ((b_id != a_id || b_star != a_star) && sa.eqab2[b_id] && b.eqab2[a_id]) {
+					if ((b_id != a_id || b_star != a_star) && equipable_id_star(sa.eqab2, b_id, b_star) && equipable_id_star(b.eqab2, a_id, a_star)) {
 						r = (sugg_count % 4 == 0 ? Math.random() : r - k);
 						r *= ++sugg_count;
 						k = Math.floor(r);
@@ -737,7 +757,10 @@ function SupportFleetData_annealing(iteration_scale = 1){
 					k = Math.floor(r);
 					let own = list[k];
 					// list[k] の上位互換が list_uppers[k] (array)
-					if (own.remaining > 0 && own.id != old_id && !list_uppers[k].some(u => u.remaining > 0)) {
+					if ( own.remaining > 0 && own.id != old_id &&
+						equipable_id_star(sa.eqab, own.id, own.rem_stars[own.remaining - 1]) &&
+						!list_uppers[k].some(u => u.remaining > 0) )
+					{
 						swap_own = own;
 						break SELECT;
 					}
@@ -748,7 +771,10 @@ function SupportFleetData_annealing(iteration_scale = 1){
 				// 非常に低確率のはず
 				for (let k=0; k<list.length; k++) {
 					let own = list[k];
-					if (own.remaining > 0 && own.id != old_id && !list_uppers[k].some(u => u.remaining > 0)) {
+					if ( own.remaining > 0 && own.id != old_id &&
+						equipable_id_star(sa.eqab, own.id, own.rem_stars[own.remaining - 1]) &&
+						!list_uppers[k].some(u => u.remaining > 0) )
+					{
 						swap_own = own;
 						break;
 					}
@@ -925,7 +951,7 @@ function SupportFleetData_annealing_entire_main(iteration_scale, priority_data){
 					let b = a_swap[k];
 					let b_id = b.slot.equipment_id;
 					let b_star = b.slot.improvement;
-					if ((b_id != a_id || b_star != a_star) && sa.eqab2[b_id] && b.eqab2[a_id]) {
+					if ((b_id != a_id || b_star != a_star) && equipable_id_star(sa.eqab2, b_id, b_star) && equipable_id_star(b.eqab2, a_id, a_star)) {
 						swap_sa = b;
 						break SELECT;
 					}
@@ -937,7 +963,7 @@ function SupportFleetData_annealing_entire_main(iteration_scale, priority_data){
 					let b = a_swap[i];
 					let b_id = b.slot.equipment_id;
 					let b_star = b.slot.improvement;
-					if ((b_id != a_id || b_star != a_star) && sa.eqab2[b_id] && b.eqab2[a_id]) {
+					if ((b_id != a_id || b_star != a_star) && equipable_id_star(sa.eqab2, b_id, b_star) && equipable_id_star(b.eqab2, a_id, a_star)) {
 						r = (sugg_count % 4 == 0 ? Math.random() : r - k);
 						r *= ++sugg_count;
 						k = Math.floor(r);
@@ -1010,7 +1036,10 @@ function SupportFleetData_annealing_entire_main(iteration_scale, priority_data){
 					k = Math.floor(r);
 					let own = list[k];
 					// list[k] の上位互換が list_uppers[k] (array)
-					if (own.remaining > 0 && own.id != old_id && !list_uppers[k].some(u => u.remaining > 0)) {
+					if ( own.remaining > 0 && own.id != old_id &&
+						equipable_id_star(sa.eqab, own.id, own.rem_stars[own.remaining - 1]) &&
+						!list_uppers[k].some(u => u.remaining > 0) )
+					{
 						swap_own = own;
 						break SELECT;
 					}
@@ -1021,7 +1050,10 @@ function SupportFleetData_annealing_entire_main(iteration_scale, priority_data){
 				// 非常に低確率のはず
 				for (let k=0; k<list.length; k++) {
 					let own = list[k];
-					if (own.remaining > 0 && own.id != old_id && !list_uppers[k].some(u => u.remaining > 0)) {
+					if ( own.remaining > 0 && own.id != old_id &&
+						equipable_id_star(sa.eqab, own.id, own.rem_stars[own.remaining - 1]) &&
+						!list_uppers[k].some(u => u.remaining > 0) )
+					{
 						swap_own = own;
 						break;
 					}

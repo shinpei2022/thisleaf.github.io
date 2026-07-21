@@ -29,7 +29,36 @@ export {
 	EquipmentSlot,
 	EquipmentBonusData,
 	EquipmentBonus,
+	attach_star_conditions,
+	equipable_id_star,
+	equipable_star_min,
 };
+
+
+// 装備可能mapの改修値条件 --------------------------------------------------------------------------
+// EquipableInfo が生成する装備可能map (id -> boolean) には、
+// 改修値条件つきで装備可能な装備について star_conditions (id -> 最低改修値) を持たせることがある
+// Object.assign 等での複製や for-in 列挙の対象にならないよう、非列挙プロパティとする
+
+// equipable に conditions を非列挙プロパティとして付与する
+function attach_star_conditions(equipable, conditions){
+	if (conditions) {
+		Object.defineProperty(equipable, "star_conditions", {value: conditions, configurable: true, writable: true});
+	}
+	return equipable;
+}
+
+// 改修値条件を考慮した装備可能判定
+// eqab: EquipableInfo が生成した装備可能map
+// star < 条件 のときのみ不可 (条件がない装備は従来通り)
+function equipable_id_star(eqab, id, star){
+	return Boolean(eqab[id]) && !(eqab.star_conditions && star < eqab.star_conditions[id]);
+}
+
+// 装備可能となる最低改修値 (条件がなければ0)
+function equipable_star_min(eqab, id){
+	return (eqab.star_conditions && eqab.star_conditions[id]) || 0;
+}
 
 
 // EquipmentDatabase -------------------------------------------------------------------------------
@@ -448,7 +477,9 @@ function EquipableInfo_generate_equipables(){
 	for (let i=0; i<slot_count+1; i++) {
 		let exslot = i == slot_count;
 		let equipable = new Object;
-		
+		// 改修値条件 (id -> 最低改修値)
+		let star_conditions = null;
+
 		if (this.ship) {
 			for (let d of csv_equipable) {
 				// 艦条件
@@ -492,32 +523,46 @@ function EquipableInfo_generate_equipables(){
 				
 				// 装備可能性
 				let value = +d.equipable;
-				
+				// 改修値条件 (requiresLevel列)　装備可の行のみ有効
+				let req_level = value ? +d.requiresLevel || 0 : 0;
+				let _set = id => {
+					equipable[id] = value;
+					if (req_level > 0) {
+						if (!star_conditions) star_conditions = new Object;
+						star_conditions[id] = req_level;
+					} else if (star_conditions) {
+						delete star_conditions[id];
+					}
+				};
+
 				if (d.equipIds) {
 					if (d.equipIds == "*") {
 						// "全て装備できない"のみ有効とする
 						if (!value) {
 							equipable = new Object;
+							star_conditions = null;
 						}
 					} else {
 						for (let id of d.equipIds.split("|")) {
-							equipable[id] = value;
+							_set(id);
 						}
 					}
 				}
-				
+
 				if (d.equipCategories) {
 					let cates = d.equipCategories.split("|");
-					
+
 					for (let eq of EquipmentDatabase.csv_equiplist) {
 						if (cates.indexOf(eq.category) >= 0) {
-							equipable[eq.number] = value;
+							_set(eq.number);
 						}
 					}
 				}
 			}
 		}
 		
+		if (star_conditions) attach_star_conditions(equipable, star_conditions);
+
 		if (!exslot) {
 			this.slot_equipables[i] = equipable;
 		} else {
@@ -617,6 +662,9 @@ function EquipmentSelect_recreate_options(infomap, rest_cates, grouping, new_val
 		}
 		
 		let name = this.renamer ? this.renamer.call(null, eq) : eq.name;
+		// 改修値条件つきはその旨を表示
+		let req = equipable_star_min(infomap, eq.number);
+		if (req > 0) name += " (★" + req + "～)";
 		parent.appendChild(new Option(name, eq.number));
 		
 		if (eq.number == old_value) found_old_value = true;
@@ -669,6 +717,14 @@ function EquipmentSelect_set_id_star(id, star){
 }
 
 function EquipmentSelect_ev_change_select(e){
+	// 改修値条件のある装備は、条件を満たす改修値まで自動で引き上げる
+	if (this.infomap) {
+		let id = this.e_select.value;
+		let req = id ? equipable_star_min(this.infomap, id) : 0;
+		if (req > 0 && +this.e_star.value < req) {
+			this.e_star.value = req;
+		}
+	}
 	this.dispatchEvent(new CustomEvent("change"));
 }
 
@@ -1037,9 +1093,16 @@ function EquipmentBonusData_set_csv_line(line){
 	let jp_types = types && types.filter(x => /^日本/.test(x)).map(x => x.substr(2));
 	let jp_def = EquipmentDatabase.jp_classes_map;
 	
+	// 実在するクラス名が「改二」で終わる場合 (巡潜甲型改二など) は通常のクラス名として扱う
+	if (!EquipmentDatabase.className_exists_map) {
+		let cmap = new Object;
+		for (let s of EquipmentDatabase.csv_shiplist) cmap[s.className] = true;
+		EquipmentDatabase.className_exists_map = cmap;
+	}
+	let _cls_exists = x => EquipmentDatabase.className_exists_map[x];
 	let cnames_raw   = line.classNames && line.classNames.split("|");
-	let kaini_cnames = cnames_raw && cnames_raw.filter(x => /改二$/.test(x)).map(x => x.substr(0, x.length - 2));
-	let cnames       = cnames_raw && cnames_raw.filter(x => !/改二$/.test(x));
+	let kaini_cnames = cnames_raw && cnames_raw.filter(x => /改二$/.test(x) && !_cls_exists(x)).map(x => x.substr(0, x.length - 2));
+	let cnames       = cnames_raw && cnames_raw.filter(x => !/改二$/.test(x) || _cls_exists(x));
 	
 	if (shipid_mode) {
 		this.shipid_map = _assign_bool_map(shipid_bufsize);
@@ -1081,32 +1144,39 @@ function EquipmentBonusData_set_csv_line(line){
 	let subcates1 = line.subEquipCategories && line.subEquipCategories.split("|");
 	let aa_radar1 = subcates1 && subcates1.indexOf("対空電探") >= 0;
 	let sf_radar1 = subcates1 && subcates1.indexOf("水上電探") >= 0;
-	
+	let acc_radar1 = subcates1 && subcates1.indexOf("命中8電探") >= 0;
+
 	let subids2   = line.subEquipIds2 && line.subEquipIds2.split("|");
 	let subcates2 = line.subEquipCategories2 && line.subEquipCategories2.split("|");
 	let aa_radar2 = subcates2 && subcates2.indexOf("対空電探") >= 0;
 	let sf_radar2 = subcates2 && subcates2.indexOf("水上電探") >= 0;
+	let acc_radar2 = subcates2 && subcates2.indexOf("命中8電探") >= 0;
+
+	// 同時装備条件の最低改修値 (subEquipLevel/subEquipLevel2列、省略時0)
+	this.subequip1_level = +line.subEquipLevel || 0;
+	this.subequip2_level = +line.subEquipLevel2 || 0;
 	
 	let sub1 = _assign_bool_map(max_number + 1);
 	let sub1_count = 0;
 	let sub2 = _assign_bool_map(max_number + 1);
 	let sub2_count = 0;
 	
-	function _eq_match(eq, ids, cates, aa, sf){
+	function _eq_match(eq, ids, cates, aa, sf, accr){
 		return (
 			(ids && ids.findIndex(x => x == eq.number) >= 0) ||
 			(cates && cates.indexOf(eq.category) >= 0) ||
 			/電探$/.test(eq.category) && (
 				(aa && +eq.antiair >= 1) ||
-				(sf && +eq.LoS >= 5)
+				(sf && +eq.LoS >= 5) ||
+				(accr && +eq.accuracy >= 8)
 			)
 		);
 	}
 	
 	for (let eq of EquipmentDatabase.csv_equiplist) {
-		sub1[eq.number] = _eq_match(eq, subids1, subcates1, aa_radar1, sf_radar1);
+		sub1[eq.number] = _eq_match(eq, subids1, subcates1, aa_radar1, sf_radar1, acc_radar1);
 		if (sub1[eq.number]) sub1_count++;
-		sub2[eq.number] = _eq_match(eq, subids2, subcates2, aa_radar2, sf_radar2);
+		sub2[eq.number] = _eq_match(eq, subids2, subcates2, aa_radar2, sf_radar2, acc_radar2);
 		if (sub2[eq.number]) sub2_count++;
 	}
 	this.subequip_map1 = sub1_count >= 1 ? sub1 : null;
@@ -1359,18 +1429,20 @@ function EquipmentBonus_get_bonus(slot_array, synergy_only = false){
 				for (; pos1<slot_array.length; pos1++) {
 					// 同一装備は選択できない
 					if (pos1 == i) continue;
-					// 装備中
-					if (data.subequip_map1[ slot_array[pos1].equipment_id ]) break;
+					// 装備中 (改修値条件があれば満たすもの)
+					if ( data.subequip_map1[ slot_array[pos1].equipment_id ] &&
+						slot_array[pos1].improvement >= data.subequip1_level ) break;
 				}
 				if (pos1 >= slot_array.length) continue;
-				
+
 				if (data.subequip_map2) {
 					let pos2 = 0;
 					for (; pos2<slot_array.length; pos2++) {
 						// 同一装備は選択できない
 						if (pos2 == i || pos2 == pos1) continue;
-						// 装備中
-						if (data.subequip_map2[ slot_array[pos2].equipment_id ]) break;
+						// 装備中 (改修値条件があれば満たすもの)
+						if ( data.subequip_map2[ slot_array[pos2].equipment_id ] &&
+							slot_array[pos2].improvement >= data.subequip2_level ) break;
 					}
 					if (pos2 >= slot_array.length) continue;
 				}
@@ -1385,6 +1457,7 @@ function EquipmentBonus_get_bonus(slot_array, synergy_only = false){
 			if (data.reset) {
 				slot.bonus_firepower = data.firepower[slot.improvement];
 				slot.bonus_torpedo   = data.torpedo[slot.improvement];
+				slot.bonus_bombing   = data.bombing[slot.improvement];
 				slot.bonus_antiair   = data.antiair[slot.improvement];
 				slot.bonus_ASW       = data.ASW[slot.improvement];
 				slot.bonus_evasion   = data.evasion[slot.improvement];
@@ -1395,6 +1468,7 @@ function EquipmentBonus_get_bonus(slot_array, synergy_only = false){
 			} else {
 				slot.bonus_firepower += data.firepower[slot.improvement];
 				slot.bonus_torpedo   += data.torpedo[slot.improvement];
+				slot.bonus_bombing   += data.bombing[slot.improvement];
 				slot.bonus_antiair   += data.antiair[slot.improvement];
 				slot.bonus_ASW       += data.ASW[slot.improvement];
 				slot.bonus_evasion   += data.evasion[slot.improvement];
@@ -1423,6 +1497,7 @@ function EquipmentBonus_get_independent_bonus(slot){
 		if (data.reset) {
 			slot.bonus_firepower = data.firepower[slot.improvement];
 			slot.bonus_torpedo   = data.torpedo[slot.improvement];
+			slot.bonus_bombing   = data.bombing[slot.improvement];
 			slot.bonus_antiair   = data.antiair[slot.improvement];
 			slot.bonus_ASW       = data.ASW[slot.improvement];
 			slot.bonus_evasion   = data.evasion[slot.improvement];
@@ -1433,6 +1508,7 @@ function EquipmentBonus_get_independent_bonus(slot){
 		} else {
 			slot.bonus_firepower += data.firepower[slot.improvement];
 			slot.bonus_torpedo   += data.torpedo[slot.improvement];
+			slot.bonus_bombing   += data.bombing[slot.improvement];
 			slot.bonus_antiair   += data.antiair[slot.improvement];
 			slot.bonus_ASW       += data.ASW[slot.improvement];
 			slot.bonus_evasion   += data.evasion[slot.improvement];
@@ -1463,6 +1539,7 @@ function EquipmentBonus_get_max_bonus(slot, count = 0){
 		if (data.reset) {
 			slot.bonus_firepower = data.firepower[slot.improvement];
 			slot.bonus_torpedo   = data.torpedo[slot.improvement];
+			slot.bonus_bombing   = data.bombing[slot.improvement];
 			slot.bonus_antiair   = data.antiair[slot.improvement];
 			slot.bonus_ASW       = data.ASW[slot.improvement];
 			slot.bonus_evasion   = data.evasion[slot.improvement];
@@ -1473,6 +1550,7 @@ function EquipmentBonus_get_max_bonus(slot, count = 0){
 		} else {
 			slot.bonus_firepower += data.firepower[slot.improvement];
 			slot.bonus_torpedo   += data.torpedo[slot.improvement];
+			slot.bonus_bombing   += data.bombing[slot.improvement];
 			slot.bonus_antiair   += data.antiair[slot.improvement];
 			slot.bonus_ASW       += data.ASW[slot.improvement];
 			slot.bonus_evasion   += data.evasion[slot.improvement];
@@ -1501,6 +1579,7 @@ function EquipmentBonus_get_max_assist(slot){
 		if (data.reset) {
 			slot.bonus_firepower = data.firepower[slot.improvement];
 			slot.bonus_torpedo   = data.torpedo[slot.improvement];
+			slot.bonus_bombing   = data.bombing[slot.improvement];
 			slot.bonus_antiair   = data.antiair[slot.improvement];
 			slot.bonus_ASW       = data.ASW[slot.improvement];
 			slot.bonus_evasion   = data.evasion[slot.improvement];
@@ -1511,6 +1590,7 @@ function EquipmentBonus_get_max_assist(slot){
 		} else {
 			slot.bonus_firepower += data.firepower[slot.improvement];
 			slot.bonus_torpedo   += data.torpedo[slot.improvement];
+			slot.bonus_bombing   += data.bombing[slot.improvement];
 			slot.bonus_antiair   += data.antiair[slot.improvement];
 			slot.bonus_ASW       += data.ASW[slot.improvement];
 			slot.bonus_evasion   += data.evasion[slot.improvement];

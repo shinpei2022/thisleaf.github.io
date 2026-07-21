@@ -65,6 +65,7 @@ Object.assign(OwnEquipmentData.prototype, {
 	rem_stars: null,
 	
 	init_varcounts    : OwnEquipmentData_init_varcounts,
+	max_rem_star      : OwnEquipmentData_max_rem_star,
 	generate_rem_stars: OwnEquipmentData_generate_rem_stars,
 	insert_rem_star   : OwnEquipmentData_insert_rem_star,
 	remove_rem_star   : OwnEquipmentData_remove_rem_star,
@@ -285,6 +286,15 @@ function OwnEquipmentData_init_varcounts(){
 	this.star_min = star_min;
 	this.star_max = star_max;
 	this.fixed = 0;
+}
+
+// 残り(rem_counts)のうち最大の改修値
+// 残りがない場合は -1
+function OwnEquipmentData_max_rem_star(){
+	for (let s=this.rem_counts.length-1; s>=0; s--) {
+		if (this.rem_counts[s] > 0) return s;
+	}
+	return -1;
 }
 
 function OwnEquipmentData_generate_rem_stars(){

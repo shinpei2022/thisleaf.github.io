@@ -361,7 +361,7 @@ function BonusRowGenerator_create_rows(){
 		return data ? Util.unescape_charref(data.name) : "";
 	};
 	let equip_name_list = (ids, def_text) => {
-		if (def_text == "水上電探" || def_text == "対空電探" || def_text == "対空機銃") {
+		if (def_text == "水上電探" || def_text == "対空電探" || def_text == "対空機銃" || def_text == "命中8電探") {
 			return def_text;
 		}
 		if (ids) {
@@ -385,12 +385,18 @@ function BonusRowGenerator_create_rows(){
 				current_cells.push(ELEMENT("td", {className: "synergy_name", innerText: text}));
 				let sub1_text = equip_name_list(this.sub1_ids, this.bonus_data.line.subEquipCategories);
 				let sub2_text = equip_name_list(this.sub2_ids, this.bonus_data.line.subEquipCategories2);
+				// 同時装備の改修値条件
+				if (sub1_text && this.bonus_data.subequip1_level > 0) sub1_text += "\n(★" + this.bonus_data.subequip1_level + "以上)";
+				if (sub2_text && this.bonus_data.subequip2_level > 0) sub2_text += "\n(★" + this.bonus_data.subequip2_level + "以上)";
 				current_cells.push( ELEMENT("td", {className: "synergy_name", innerText: sub1_text}) );
 				current_cells.push( ELEMENT("td", {className: "synergy_name", innerText: sub2_text}) );
 				
 			} else {
 				let sub1_text = equip_name_list(this.sub1_ids, this.bonus_data.line.subEquipCategories);
 				let sub2_text = equip_name_list(this.sub2_ids, this.bonus_data.line.subEquipCategories2);
+				// 同時装備の改修値条件
+				if (sub1_text && this.bonus_data.subequip1_level > 0) sub1_text += "\n(★" + this.bonus_data.subequip1_level + "以上)";
+				if (sub2_text && this.bonus_data.subequip2_level > 0) sub2_text += "\n(★" + this.bonus_data.subequip2_level + "以上)";
 				current_cells.push( ELEMENT("td", {className: "synergy_name", innerText: equip_name(this.main_ids[m])}) );
 				current_cells.push( ELEMENT("td", {className: "synergy_name", innerText: sub1_text}) );
 				current_cells.push( ELEMENT("td", {className: "synergy_name", innerText: sub2_text}) );

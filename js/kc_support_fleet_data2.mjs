@@ -12,6 +12,7 @@ import {
 	EquipmentSlot,
 	EquipmentBonusData,
 	EquipmentBonus,
+	equipable_id_star,
 } from "./kc_equipment.mjs";
 import {/*OwnEquipmentData*/} from "./kc_support_fleet.mjs";
 import {
@@ -76,8 +77,8 @@ function SupportFleetData_fill(){
 			let max_own_score = min_score;
 			
 			for (let own of owns) {
-				if (own.remaining <= 0 || !eqab[own.id]) continue;
-				
+				if (own.remaining <= 0 || !equipable_id_star(eqab, own.id, own.rem_stars[own.remaining - 1])) continue;
+
 				slot.set_equipment(own.id, null, own.rem_stars[own.remaining - 1]);
 				min_ssd.calc_bonus();
 				
@@ -148,8 +149,8 @@ function SupportFleetData_random_fill(reset = false){
 			let count = 0;
 			
 			for (let own of owns) {
-				if (own.remaining <= 0 || !eqab[own.id]) continue;
-				
+				if (own.remaining <= 0 || !equipable_id_star(eqab, own.id, own.rem_stars[own.remaining - 1])) continue;
+
 				if (Math.random() * (++count) < 1) {
 					select_own = own;
 				}
@@ -261,9 +262,9 @@ function SupportFleetData_hill_climbling1(compare_type = "rigidly"){
 				let old_star = slot.improvement;
 				
 				for (let own of owns) {
-					if (!eqab[own.id]) continue;
-					
 					let star = own.rem_stars[own.remaining - 1];
+					if (!equipable_id_star(eqab, own.id, star)) continue;
+
 					// 同一装備の場合は星が大きいものを採用
 					if (own.id == old_id && star <= old_star) continue;
 					
@@ -478,17 +479,17 @@ function SupportFleetData_single(ssd){
 			if (i > 0) {
 				if (!empty_ex) break;
 				let ex_eqab = empty_slot_eqabs[empty_slot_eqabs.length - 1];
-				if (!ex_eqab[slots[i-1].equipment_id]) continue;
+				if (!equipable_id_star(ex_eqab, slots[i-1].equipment_id, slots[i-1].improvement)) continue;
 			}
-			
+
 			let placable = true;
 			let s = 0;
 			let e = 0;
 			// slots[s] が配置できるかを確認
 			for (; s<slots.length; s++) {
 				if (s == i - 1) continue;
-				
-				if (!empty_slot_eqabs[e][slots[s].equipment_id]) {
+
+				if (!equipable_id_star(empty_slot_eqabs[e], slots[s].equipment_id, slots[s].improvement)) {
 					placable = false;
 					break;
 				}
@@ -529,7 +530,7 @@ function SupportFleetData_single(ssd){
 			if (i > 0) {
 				if (!empty_ex) break;
 				let ex_eqab = ssd.allslot_equipables[ex_pos];
-				if (!ex_eqab[slots[i - 1].equipment_id]) continue;
+				if (!equipable_id_star(ex_eqab, slots[i - 1].equipment_id, slots[i - 1].improvement)) continue;
 				
 				ssd.allslot_equipment[ex_pos].set_equipment_from(slots[i - 1]);
 				set_count++;
@@ -547,7 +548,7 @@ function SupportFleetData_single(ssd){
 				
 				while (t >= 0) {
 					if ( ssd.allslot_equipment[t].equipment_id == 0 &&
-						ssd.allslot_equipables[t][slots[s].equipment_id] )
+						equipable_id_star(ssd.allslot_equipables[t], slots[s].equipment_id, slots[s].improvement) )
 					{
 						ssd.allslot_equipment[t].set_equipment_from(slots[s]);
 						set_count++;
@@ -657,9 +658,9 @@ function SupportFleetData_single_nosynergy(ssd, allow_shared = false){
 		// どれか一つに装備可能
 		for (let i=0; i<ssd.allslot_equipment.length; i++) {
 			if (ssd.allslot_fixes[i]) continue;
-			
+
 			let eqab = ssd.allslot_equipables[i];
-			if (eqab[own.id]) return true;
+			if (equipable_id_star(eqab, own.id, own.max_rem_star())) return true;
 		}
 		return false;
 	});
@@ -738,7 +739,9 @@ function SupportFleetData_single_nosynergy(ssd, allow_shared = false){
 					// 特殊増設持ちでも通常スロットについては上位互換でソートされている
 					if (irregular_exslot) {
 						let eqab = ssd.allslot_equipables[ssd.slot_count];
-						if (eqab[own.id] && !eqab[slot.equipment_id]) {
+						if ( equipable_id_star(eqab, own.id, own_slot.improvement) &&
+							!equipable_id_star(eqab, slot.equipment_id, slot.improvement) )
+						{
 							upper_equip = false;
 						}
 					}
@@ -878,8 +881,8 @@ function SupportFleetData_single_nosynergy(ssd, allow_shared = false){
 			let scores = cva ? single_scores_cva : single_scores;
 			
 			for (let k=klim-1; k>=0; k--) {
-				if (!eqab[nsslots[k].equipment_id]) continue;
-				
+				if (!equipable_id_star(eqab, nsslots[k].equipment_id, nsslots[k].improvement)) continue;
+
 				// スコアは修正が必要
 				let score = scores[k].clone();
 				let upw = score.unreached_power;
@@ -911,7 +914,7 @@ function SupportFleetData_single_nosynergy(ssd, allow_shared = false){
 				for (let k=klim-1; k>=0; k--) {
 					let k_slot = nsslots[k];
 					// 直前のものと同じならスキップできる(直前で装備した場合で探索済み)
-					if (!eqab[k_slot.equipment_id] || k_slot == prev) continue;
+					if (!equipable_id_star(eqab, k_slot.equipment_id, k_slot.improvement) || k_slot == prev) continue;
 					
 					let k_cva = cva || k_slot.equipment_data.cv_attackable;
 					// cva が false になるのは一番上を決めるときのみと仮定する
@@ -959,7 +962,7 @@ function SupportFleetData_single_nosynergy(ssd, allow_shared = false){
 				let prev = null;
 				for (let k=klim-1; k>=0; k--) {
 					let k_slot = nsslots[k];
-					if (!eqab[k_slot.equipment_id] || k_slot == prev) continue;
+					if (!equipable_id_star(eqab, k_slot.equipment_id, k_slot.improvement) || k_slot == prev) continue;
 					
 					let k_cva = cva || k_slot.equipment_data.cv_attackable;
 					// 空母の場合は伸びる火力に幅がある
@@ -1043,9 +1046,9 @@ function SupportFleetData_single_nosynergy_pre(ssd){
 		// どれか一つに装備可能
 		for (let i=0; i<ssd.allslot_equipment.length; i++) {
 			if (ssd.allslot_fixes[i]) continue;
-			
+
 			let eqab = ssd.allslot_equipables[i];
-			if (eqab[own.id]) return true;
+			if (equipable_id_star(eqab, own.id, own.max_rem_star())) return true;
 		}
 		return false;
 	});
@@ -1068,7 +1071,7 @@ function SupportFleetData_single_nosynergy_pre(ssd){
 		// pos番目のスロットについて
 		let slot = ssd.allslot_equipment[pos];
 		let eqab = ssd.allslot_equipables[pos];
-		let pos_owns = owns.filter(own => eqab[own.id] && own.remaining > 0);
+		let pos_owns = owns.filter(own => own.remaining > 0 && equipable_id_star(eqab, own.id, own.rem_stars[own.remaining - 1]));
 		if (pos_owns.length == 0) continue;
 		
 		// 最大が存在するか
@@ -1109,7 +1112,7 @@ function SupportFleetData_single_nosynergy_pre(ssd){
 			let i_eqab = ssd.allslot_equipables[i];
 			// pos_max_slot の上位互換はいくつ装備できるか
 			// border_count個以上装備できればOK
-			let i_owns = owns.filter(own => i_eqab[own.id] && own.remaining > 0);
+			let i_owns = owns.filter(own => own.remaining > 0 && equipable_id_star(i_eqab, own.id, own.rem_stars[own.remaining - 1]));
 			
 			let upper_count = 0;
 			let temp_slot = new EquipmentSlot();
@@ -1120,6 +1123,8 @@ function SupportFleetData_single_nosynergy_pre(ssd){
 				
 				for (; rem>0; rem--) {
 					let star = own.rem_stars[rem];
+					// 改修値条件を満たさない個体は上位互換として数えない
+					if (!equipable_id_star(i_eqab, own.id, star)) continue;
 					temp_slot.set_equipment(own.id, own.csv_data, star);
 					eqbonus.get_independent_bonus(temp_slot);
 					

@@ -9,6 +9,7 @@ import {
 	EquipmentSlot,
 	EquipmentBonusData,
 	EquipmentBonus,
+	equipable_id_star,
 } from "./kc_equipment.mjs";
 import * as Damage from "./kc_damage_utility.mjs";
 import {
@@ -316,7 +317,7 @@ function SupportShipData_generate_slots(){
 		let star = this.equipment_stars[i] ?? 0;
 		let eqab = this.equipable_info.slot_equipables[i];
 
-		if (!id || !eqab[id]) {
+		if (!id || !equipable_id_star(eqab, id, star)) {
 			// 装備不可
 			id = 0;
 			star = 0;
@@ -332,7 +333,7 @@ function SupportShipData_generate_slots(){
 		let star = this.equipment_stars[i] ?? 0;
 		let eqab = this.equipable_info.exslot_equipable;
 
-		if (!id || !eqab[id]) {
+		if (!id || !equipable_id_star(eqab, id, star)) {
 			id = 0;
 			star = 0;
 		}

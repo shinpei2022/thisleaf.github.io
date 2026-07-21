@@ -22,13 +22,73 @@ export {
 // この表示順になる、ここにないものは最後尾
 // keys に配列を指定すると viewname に置き換える
 const SHIP_GROUPING_DEF = [
-	{viewname: "戦艦", keys: ["戦艦", "巡洋戦艦"]},
-	{viewname: "航空戦艦", keys: ["航空戦艦", "改装航空戦艦"]},
-	{viewname: "正規空母", keys: ["正規空母", "装甲空母", "夜間作戦航空母艦", "近代化航空母艦"]},
-	{viewname: "軽空母"},
-	
-	{viewname: "重巡洋艦"},
-	{viewname: "航空巡洋艦", keys: ["航空巡洋艦", "改装航空巡洋艦", "特殊改装航空巡洋艦"]},
+	// 戦艦・航空戦艦は型ごとに分類 (型名は艦娘名一覧(艦種別) https://wikiwiki.jp/kancolle/ を参考に整理)
+	{viewname: "戦艦 (金剛型)", keys: ["戦艦 (改金剛型)"]},
+	{viewname: "戦艦 (扶桑型)"},
+	{viewname: "戦艦 (伊勢型)"},
+	{viewname: "戦艦 (長門型)"},
+	{viewname: "戦艦 (大和型)", keys: ["戦艦 (改大和型)"]},
+	// アメリカ戦艦のみ型ごとに分類
+	{viewname: "戦艦 (Colorado級)"},
+	{viewname: "戦艦 (Nevada級)"},
+	{viewname: "戦艦 (North Carolina級)"},
+	{viewname: "戦艦 (South Dakota級)"},
+	{viewname: "戦艦 (Iowa級)"},
+	{viewname: "戦艦 (イギリス)", keys: ["戦艦 (Nelson級)", "戦艦 (Queen Elizabeth級)"]},
+	{viewname: "戦艦 (ドイツ)", keys: ["戦艦 (Bismarck級)"]},
+	{viewname: "戦艦 (イタリア)", keys: ["戦艦 (Conte di Cavour級)", "戦艦 (V.Veneto級)"]},
+	{viewname: "戦艦 (フランス)", keys: ["戦艦 (Richelieu級)"]},
+	{viewname: "戦艦 (ソ連)", keys: ["戦艦 (Гангут級)"]},
+	{viewname: "航空戦艦 (扶桑型)"},
+	{viewname: "航空戦艦 (伊勢型)", keys: ["航空戦艦 (改伊勢型)"]},
+	{viewname: "航空戦艦 (大和型)", keys: ["航空戦艦 (改大和型)"]},
+
+	// 正規空母・軽空母も型ごとに分類
+	{viewname: "正規空母 (赤城型)"},
+	{viewname: "正規空母 (加賀型)", keys: ["正規空母 (改加賀型)"]},
+	{viewname: "正規空母 (蒼龍型)"},
+	{viewname: "正規空母 (飛龍型)"},
+	{viewname: "正規空母 (翔鶴型)"},
+	{viewname: "正規空母 (雲龍型)"},
+	{viewname: "正規空母 (大鳳型)"},
+	{viewname: "正規空母 (アメリカ)", keys: [
+		"正規空母 (Essex級)", "正規空母 (Lexington級)", "正規空母 (Ranger級)", "正規空母 (Yorktown級)",
+	]},
+	{viewname: "正規空母 (イギリス)", keys: ["正規空母 (Ark Royal級)", "正規空母 (Illustrious級)"]},
+	{viewname: "正規空母 (ドイツ)", keys: ["正規空母 (Graf Zeppelin級)"]},
+	{viewname: "正規空母 (イタリア)", keys: ["正規空母 (Aquila級)"]},
+	{viewname: "正規空母 (フランス)", keys: ["正規空母 (Béarn級)"]},
+	{viewname: "軽空母 (鳳翔型)", keys: ["軽空母 (改鳳翔型)"]},
+	{viewname: "軽空母 (龍驤型)"},
+	{viewname: "軽空母 (祥鳳型)"},
+	{viewname: "軽空母 (千歳型)"},
+	{viewname: "軽空母 (大鷹型)", keys: ["軽空母 (春日丸級)"]},
+	{viewname: "軽空母 (飛鷹型)"},
+	{viewname: "軽空母 (龍鳳型)", keys: ["軽空母 (改龍鳳型)"]},
+	{viewname: "軽空母 (最上型)"},
+	{viewname: "軽空母 (特設航空母艦)"},
+	{viewname: "軽空母 (アメリカ)", keys: ["軽空母 (Casablanca級)", "軽空母 (Independence級)"]},
+
+	// 重巡洋艦・航空巡洋艦も型ごとに分類
+	{viewname: "重巡洋艦 (古鷹型)"},
+	{viewname: "重巡洋艦 (青葉型)"},
+	{viewname: "重巡洋艦 (妙高型)"},
+	{viewname: "重巡洋艦 (高雄型)"},
+	{viewname: "重巡洋艦 (最上型)"},
+	{viewname: "重巡洋艦 (利根型)"},
+	{viewname: "重巡洋艦 (アメリカ)", keys: ["重巡洋艦 (New Orleans級)", "重巡洋艦 (Northampton級)"]},
+	{viewname: "重巡洋艦 (ドイツ)", keys: ["重巡洋艦 (Admiral Hipper級)"]},
+	{viewname: "重巡洋艦 (イタリア)", keys: ["重巡洋艦 (Zara級)"]},
+	{viewname: "重巡洋艦 (フランス)", keys: ["重巡洋艦 (Algérie級)"]},
+	{viewname: "航空巡洋艦 (最上型)"},
+	{viewname: "航空巡洋艦 (利根型)"},
+
+	// 生の艦種名のシノニムを正規名に正規化 (型による細分類の前段階、実際にこの名前のまま表示されることはない想定)
+	{viewname: "戦艦", keys: ["巡洋戦艦"]},
+	{viewname: "航空戦艦", keys: ["改装航空戦艦"]},
+	{viewname: "正規空母", keys: ["装甲空母", "夜間作戦航空母艦", "近代化航空母艦"]},
+	{viewname: "航空巡洋艦", keys: ["改装航空巡洋艦", "特殊改装航空巡洋艦"]},
+
 	{viewname: "軽巡洋艦", keys: ["軽巡洋艦", "軽(航空)巡洋艦", "防空巡洋艦", "兵装実験軽巡", "重改装軽巡洋艦"]},
 	{viewname: "重雷装巡洋艦"},
 	{viewname: "練習巡洋艦"},
@@ -46,7 +106,13 @@ const SHIP_GROUPING_DEF = [
 	{viewname: "駆逐艦 (秋月型)"},
 	{viewname: "駆逐艦 (島風型)"},
 	{viewname: "駆逐艦 (松型)"},
-	{viewname: "駆逐艦 (海外艦)"},
+	{viewname: "駆逐艦 (アメリカ)"},
+	{viewname: "駆逐艦 (イギリス)"},
+	{viewname: "駆逐艦 (ドイツ)"},
+	{viewname: "駆逐艦 (イタリア)"},
+	{viewname: "駆逐艦 (フランス)"},
+	{viewname: "駆逐艦 (ソ連)"},
+	{viewname: "駆逐艦 (スウェーデン)"},
 
 	{viewname: "海防艦"},
 	
@@ -59,15 +125,43 @@ const SHIP_GROUPING_DEF = [
 	{viewname: "工作艦"},
 ];
 
-// "駆逐艦 (海外艦)" に分類される型名
-const SHIP_GROUPING_FOREIGN_DD = [
-	"J級",
-	"Z1型",
-	"Maestrale級",
-	"Ташкент級",
-	"John C.Butler級",
-	"Fletcher級",
+// 海外駆逐艦の型名 -> 国名 (駆逐艦は国ごとに分類する)
+const SHIP_GROUPING_FOREIGN_DD_COUNTRY = {
+	"J級"            : "イギリス",
+	"Z1型"           : "ドイツ",
+	"Maestrale級"    : "イタリア",
+	"Ташкент級"      : "ソ連",
+	"John C.Butler級": "アメリカ",
+	"Fletcher級"     : "アメリカ",
+	"Mogador級"      : "フランス",
+	"Aigle級"        : "フランス",
+	"Visby級"        : "スウェーデン",
+};
+
+// 駆逐艦以外で艦型(className)ごとに細分類する艦種 (正規化後の艦種名)
+const SHIP_TYPES_SPLIT_BY_CLASS = ["戦艦", "航空戦艦", "正規空母", "軽空母", "重巡洋艦", "航空巡洋艦"];
+
+// 艦種絞り込みチップの大分類 (group_name の先頭の艦種名で判定)
+const SHIP_FILTER_CATEGORIES = [
+	{name: "戦艦級",   types: ["戦艦", "航空戦艦"]},
+	{name: "航空母艦", types: ["正規空母", "軽空母"]},
+	{name: "重巡級",   types: ["重巡洋艦", "航空巡洋艦"]},
+	{name: "軽巡級",   types: ["軽巡洋艦", "重雷装巡洋艦", "練習巡洋艦"]},
+	{name: "駆逐艦",   types: ["駆逐艦"]},
+	{name: "補助艦艇", types: ["海防艦", "潜水艦", "水上機母艦", "補給艦", "潜水母艦", "揚陸艦", "工作艦", "戦車揚陸艦", "練習特務艦"]},
 ];
+
+// group_name (例: "戦艦 (金剛型)") から先頭の艦種名だけを取り出す
+function _ship_group_base_type(group_name){
+	return group_name.split(" (")[0];
+}
+
+// group_name がどの絞り込みチップの大分類に属するか ("" はどれにも属さない)
+function _ship_group_category(group_name){
+	let base_type = _ship_group_base_type(group_name);
+	let category = SHIP_FILTER_CATEGORIES.find(c => c.types.indexOf(base_type) >= 0);
+	return category ? category.name : "";
+}
 
 // キャラ名の定義
 // 通常は未改造の名前が使われる
@@ -496,19 +590,24 @@ function ShipSelector__initialize(shiplist, arg_grouping_def, arg_default_select
 	// 艦からグループ名(艦型)
 	function _get_shipgroup_name(ship){
 		if (!ship) return "";
-		
-		let key = ship.shipTypeI || ship.shipType;
-		
+
+		// 生の艦種名をシノニム正規化 (例: "改装航空戦艦" -> "航空戦艦")
+		let raw_key = ship.shipTypeI || ship.shipType;
+		let key = classname_replacer[raw_key] || raw_key;
+
 		if (key == "駆逐艦") {
-			// 駆逐艦は数が多いので型で分類
-			if (SHIP_GROUPING_FOREIGN_DD.findIndex(x => x == ship.className) >= 0) {
-				// 海外艦
-				key += " (海外艦)";
-			} else {
+			// 駆逐艦は数が多いので型で分類、海外艦は国ごとに分類
+			let country = SHIP_GROUPING_FOREIGN_DD_COUNTRY[ship.className];
+			if (country) {
+				key += " (" + country + ")";
+			} else if (ship.className) {
 				key += " (" + ship.className + ")";
 			}
+		} else if (SHIP_TYPES_SPLIT_BY_CLASS.indexOf(key) >= 0 && ship.className) {
+			// 戦艦・航空戦艦・正規空母・軽空母・重巡洋艦・航空巡洋艦も型で分類
+			key += " (" + ship.className + ")";
 		}
-		
+
 		if (classname_replacer[key]) {
 			key = classname_replacer[key];
 		}
@@ -837,8 +936,8 @@ class DETypeGroup {
 	constructor(name){
 		this.group_name = name || "";
 		this.e_delimiter = NODE(ELEMENT("div", "", "delimiter"), [
-			NODE(ELEMENT("div", "", "hr"), [ELEMENT("div")]),
 			NODE(ELEMENT("div", "", "group_name"), [TEXT(this.group_name)]),
+			NODE(ELEMENT("div", "", "hr"), [ELEMENT("div")]),
 		]);
 		this.e_search_row = ELEMENT("div", "", "shipgroup");
 		this.de_characters = [];
@@ -1019,7 +1118,7 @@ class DEShip {
  */
 class ShipSelectorDialog extends DOMDialog {
 	// property
-	e_class_select;
+	e_class_chips;
 	e_query;
 	e_clear_x;
 	e_unupgrade;
@@ -1047,6 +1146,12 @@ class ShipSelectorDialog extends DOMDialog {
 	 * @private
 	 */
 	hidden_groups = null;
+	/**
+	 * 艦種チップで選択中の艦種絞り込み ("" は絞り込みなし)
+	 * @type {string}
+	 * @private
+	 */
+	class_filter = "";
 	/**
 	 * 現在選択中の艦名
 	 * null: なにも選択されていない
@@ -1077,9 +1182,10 @@ class ShipSelectorDialog extends DOMDialog {
 };
 
 Object.defineProperties(ShipSelectorDialog.prototype, {
-	// 共通コード
-	recreate_class_select: {value: ShipSelector_recreate_class_select},
-	
+	recreate_class_select: {value: ShipSelectorDialog_recreate_class_chips},
+	set_class_filter     : {value: ShipSelectorDialog_set_class_filter},
+	update_class_chips   : {value: ShipSelectorDialog_update_class_chips},
+
 	create               : {value: ShipSelectorDialog_create},
 	create_list          : {value: ShipSelectorDialog_create_list},
 	refresh_list         : {value: ShipSelectorDialog_refresh_list},
@@ -1162,7 +1268,6 @@ function ShipSelectorDialog_create(insideClassName = "", shipcode_def = null, hi
 	NODE(this.e_contents, [
 		NODE(ELEMENT("div", "", "search_bar"), [
 			// toolbar
-			this.e_class_select = ELEMENT("select", "", "ship_class"),
 			this.e_query        = ELEMENT("input", {size: 20, placeholder: "検索"}),
 			this.e_clear_x      = NODE(ELEMENT("div", "", "mark_x"), [ELEMENT("div"), ELEMENT("div")]),
 			NODE(ELEMENT("label", {className: "unupgrade", title: "艦種が変わるものはチェックなしでも表示"}), [
@@ -1175,7 +1280,9 @@ function ShipSelectorDialog_create(insideClassName = "", shipcode_def = null, hi
 			]),
 			this.e_ok           = NODE(ELEMENT("button", "", "ok"), [TEXT("OK")]),
 		]),
-		
+
+		this.e_class_chips = ELEMENT("div", "", "class_chips"),
+
 		this.e_list_div = ELEMENT("div", "", "list"),
 	]);
 
@@ -1190,7 +1297,6 @@ function ShipSelectorDialog_create(insideClassName = "", shipcode_def = null, hi
 	}
 
 	this.add_dialog_button(this.e_ok, "ok");
-	this.e_class_select.addEventListener("change", e => this.refresh_list());
 	this.e_query.addEventListener("input", Util.delayed_caller(() => this.refresh_list(), 200));
 	this.e_query.addEventListener("keydown", e => this.ev_keydown_query(e));
 	this.e_clear_x.addEventListener("click", e => this.ev_click_x(e));
@@ -1284,6 +1390,54 @@ function ShipSelectorDialog_create_list(){
  * 表示を更新
  * @method ShipSelectorDialog#refresh_list
  */
+/**
+ * 艦種絞り込み用のチップを再生成する
+ * @method ShipSelectorDialog#recreate_class_select
+ * @private
+ */
+function ShipSelectorDialog_recreate_class_chips(){
+	Util.remove_children(this.e_class_chips);
+
+	let e_all = NODE(ELEMENT("div", "", "chip all"), [TEXT("すべて")]);
+	e_all.addEventListener("click", () => this.set_class_filter(""));
+	this.e_class_chips.appendChild(e_all);
+
+	for (let category of SHIP_FILTER_CATEGORIES) {
+		let e_chip = NODE(ELEMENT("div", "", "chip"), [TEXT(category.name)]);
+		e_chip.dataset.category = category.name;
+		e_chip.addEventListener("click", () => this.set_class_filter(category.name));
+		this.e_class_chips.appendChild(e_chip);
+	}
+
+	this.class_filter = "";
+	this.update_class_chips();
+}
+
+/**
+ * 艦種絞り込みチップの選択状態を変更し、リストを再描画する
+ * @param {string} category_name 絞り込む大分類名 (SHIP_FILTER_CATEGORIES の name、"" で絞り込み解除)
+ * @method ShipSelectorDialog#set_class_filter
+ */
+function ShipSelectorDialog_set_class_filter(category_name){
+	this.class_filter = category_name || "";
+	this.update_class_chips();
+	this.refresh_list();
+}
+
+/**
+ * 艦種絞り込みチップの選択状態(見た目)を現在の class_filter に合わせる
+ * @method ShipSelectorDialog#update_class_chips
+ * @private
+ */
+function ShipSelectorDialog_update_class_chips(){
+	for (let e_chip of this.e_class_chips.children) {
+		let is_selected = e_chip.classList.contains("all")
+			? this.class_filter == ""
+			: e_chip.dataset.category == this.class_filter;
+		e_chip.classList.toggle("selected", is_selected);
+	}
+}
+
 function ShipSelectorDialog_refresh_list(){
 	this.e_ok.classList.toggle("hide", this.autoclose_mode);
 	
@@ -1297,12 +1451,13 @@ function ShipSelectorDialog_refresh_list(){
 	let search_regs = RomajiSearch.toSearchRegArray(this.e_query.value);
 	let search_mode = search_regs.length > 0;
 	let show_unupgraded = this.e_unupgrade.checked;
-	let limit_ship_class = this.e_class_select.value;
+	let limit_ship_class = this.class_filter;
 	//console.log("search_regs", search_regs);
 	
 	for (let group of ShipSelector.shipgroup_data) {
-		if (limit_ship_class && group.group_name != limit_ship_class) continue;
-		if (!this.e_hidden_groups?.checked && this.hidden_groups?.includes(group.group_name)) continue;
+		if (limit_ship_class && _ship_group_category(group.group_name) != limit_ship_class) continue;
+		// チップで艦種を絞り込み中は「その他の艦種」非表示設定を無視する
+		if (!limit_ship_class && !this.e_hidden_groups?.checked && this.hidden_groups?.includes(group.group_name)) continue;
 		
 		let de_group = this.de_typegroups[group.group_name];
 		

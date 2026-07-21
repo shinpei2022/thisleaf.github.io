@@ -367,13 +367,19 @@ th.center, td.center {
 	user-select: none;
 }
 .inside.ship_selector .list > .delimiter {
-	position: absolute;
-	right: 0px;
-	font-size: 75%;
-	z-index: 1;
+	position: sticky;
+	top: 0px;
+	z-index: 3;
 	display: flex;
+	align-items: center;
 	cursor: default;
 	width: 100%;
+	margin-top: 0.5em;
+	padding: 0.15em 0em;
+	background-color: #fff;
+}
+.inside.ship_selector .list > .delimiter:first-child {
+	margin-top: 0em;
 }
 .inside.ship_selector .list > .delimiter .hr {
 	position: relative;
@@ -389,9 +395,41 @@ th.center, td.center {
 	border-top: 1px solid lightgray;
 }
 .inside.ship_selector .list > .delimiter .group_name {
-	margin: 0em 0.5em;
+	margin: 0em 0.5em 0em 0.2em;
 	flex-grow: 0;
-	color: #444;
+	font-weight: bold;
+	color: #333;
+}
+
+/* 艦種絞り込みチップ */
+.inside.ship_selector .class_chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 3px;
+	margin: 0.3em 0em 0em 0em;
+}
+.inside.ship_selector .class_chips > .chip {
+	padding: 0.15em 0.6em;
+	border: 1px solid #888;
+	border-radius: 0px;
+	font-size: 75%;
+	color: #333;
+	background-color: #f4f4f4;
+	cursor: pointer;
+	user-select: none;
+}
+.inside.ship_selector .class_chips > .chip:hover {
+	background-color: #e0eefc;
+	border-color: #0d5973;
+}
+.inside.ship_selector .class_chips > .chip.selected {
+	background-color: #0d5973;
+	border-color: #0d5973;
+	color: #fff;
+	font-weight: bold;
+}
+.inside.ship_selector .class_chips > .chip.all {
+	font-weight: bold;
 }
 
 .inside.ship_selector .list > .groupheader {

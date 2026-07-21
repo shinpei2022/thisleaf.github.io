@@ -8,6 +8,7 @@ import {
 	EquipmentSlot,
 	EquipmentBonusData,
 	EquipmentBonus,
+	equipable_id_star,
 } from "./kc_equipment.mjs";
 import {
 	OwnEquipmentData,
@@ -419,11 +420,13 @@ function SupportFleetData_swap_slot_ptr(ssd1, pos1, ssd2, pos2){
 	if (ssd1.allslot_fixes[pos1] || ssd2.allslot_fixes[pos2]) return false;
 	
 	// EquipmentSlot はポインターの入れ替えのみで行ける
-	let id1 = ssd1.allslot_equipment[pos1].equipment_id;
-	let id2 = ssd2.allslot_equipment[pos2].equipment_id;
-	
+	let slot1_ = ssd1.allslot_equipment[pos1];
+	let slot2_ = ssd2.allslot_equipment[pos2];
+
 	// 入れ替え可能
-	if (ssd1.allslot_equipables[pos1][id2] && ssd2.allslot_equipables[pos2][id1]) {
+	if ( equipable_id_star(ssd1.allslot_equipables[pos1], slot2_.equipment_id, slot2_.improvement) &&
+		equipable_id_star(ssd2.allslot_equipables[pos2], slot1_.equipment_id, slot1_.improvement) )
+	{
 		let slot1 = ssd1.allslot_equipment[pos1];
 		ssd1.allslot_equipment[pos1] = ssd2.allslot_equipment[pos2];
 		ssd2.allslot_equipment[pos2] = slot1;
@@ -438,11 +441,12 @@ function SupportFleetData_swap_slot_ptr(ssd1, pos1, ssd2, pos2){
 function SupportFleetData_check_swappable(ssd1, pos1, ssd2, pos2){
 	if (ssd1.allslot_fixes[pos1] || ssd2.allslot_fixes[pos2]) return false;
 	
-	let id1 = ssd1.allslot_equipment[pos1].equipment_id;
-	let id2 = ssd2.allslot_equipment[pos2].equipment_id;
-	
+	let slot1 = ssd1.allslot_equipment[pos1];
+	let slot2 = ssd2.allslot_equipment[pos2];
+
 	// 入れ替え可能条件
-	return ssd1.allslot_equipables[pos1][id2] && ssd2.allslot_equipables[pos2][id1];
+	return equipable_id_star(ssd1.allslot_equipables[pos1], slot2.equipment_id, slot2.improvement) &&
+		equipable_id_star(ssd2.allslot_equipables[pos2], slot1.equipment_id, slot1.improvement);
 }
 
 // 装備を並び替える
@@ -465,7 +469,7 @@ function SupportFleetData_allow_fixed_exslot(){
 			// からっぽ！
 			if (!eq) return false;
 			
-			let list = this.own_list.filter(x => x.rem_counts.reduce((a, c) => a + c) > 0 && eqab[x.id]);
+			let list = this.own_list.filter(x => x.rem_counts.reduce((a, c) => a + c) > 0 && equipable_id_star(eqab, x.id, x.max_rem_star()));
 			for (let own of list) {
 				let own_eq = EquipmentDatabase.equipment_data_map[own.id];
 				if (eq.firepower < own_eq.firepower || eq.accuracy < own_eq.accuracy) {

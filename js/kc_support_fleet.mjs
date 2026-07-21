@@ -4,7 +4,7 @@ import * as Global from "./kc_support_global.mjs";
 import * as Util from "./utility.mjs";
 import {DOM, NODE, ELEMENT, TEXT, EL, _T, HTML} from "./utility.mjs";
 import {SupportShip, SupportShipData} from "./kc_support_ship.mjs";
-import {EquipmentDatabase} from "./kc_equipment.mjs";
+import {EquipmentDatabase, equipable_id_star} from "./kc_equipment.mjs";
 import {DOMDialog} from "./dom_dialog.mjs";
 
 export {
@@ -508,8 +508,8 @@ function SupportFleet_ev_dragover_equip(e, sup, index){
 		
 		let copy = e.ctrlKey;
 		// 入れ替え可能 or コピー可能(Ctrl)
-		if ( (sup_data.equipable[drag_data.id] || drag_data.id == "") &&
-			(copy || (drag_data.equipable[sup_data.id] || sup_data.id == "")) )
+		if ( (equipable_id_star(sup_data.equipable, drag_data.id, drag_data.star) || drag_data.id == "") &&
+			(copy || (equipable_id_star(drag_data.equipable, sup_data.id, sup_data.star) || sup_data.id == "")) )
 		{
 			e.dataTransfer.dropEffect = copy ? "copy" : "move";
 			e.preventDefault();
@@ -529,8 +529,8 @@ function SupportFleet_ev_drop_equip(e, sup, index){
 		// Ctrl押しながらでコピー、それ以外は入れ替え
 		let copy = e.ctrlKey;
 		
-		if ( (sup_data.equipable[drag_data.id] || drag_data.id == "") &&
-			(copy || (drag_data.equipable[sup_data.id] || sup_data.id == "")) )
+		if ( (equipable_id_star(sup_data.equipable, drag_data.id, drag_data.star) || drag_data.id == "") &&
+			(copy || (equipable_id_star(drag_data.equipable, sup_data.id, sup_data.star) || sup_data.id == "")) )
 		{
 			sup_data.select.set_id_star(drag_data.id, drag_data.star);
 			// formの変更なのでssdに通知
