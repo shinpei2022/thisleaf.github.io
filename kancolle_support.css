@@ -553,6 +553,31 @@ body {
 	font-size: 80%;
 	margin-left: 1.2em;
 }
+/* 所持数超過の警告 */
+#support_form #optimize_warning {
+	display: none;
+	margin: 0.3em 0.5em 0.3em 1.2em;
+	padding: 0.4em 0.6em;
+	border: 1px solid #e0a800;
+	border-radius: 4px;
+	background-color: #fff3cd;
+	color: #664d03;
+	font-size: 80%;
+	width: fit-content;
+}
+#support_form #optimize_warning.show {
+	display: block;
+}
+#support_form #optimize_warning .title {
+	font-weight: bold;
+}
+#support_form #optimize_warning ul + .title {
+	margin-top: 0.5em;
+}
+#support_form #optimize_warning ul {
+	margin: 0.2em 0 0;
+	padding-left: 1.4em;
+}
 
 /* 支援艦隊 > 艦娘ダイアログ色定義 */
 .inside.ship_selector .list > .shipgroup > .ship.dd {
