@@ -1375,9 +1375,6 @@ function OwnResetDialog_create(){
 		// 中央に置く(この位置でないとサイズがうまく計算できない)
 		this.move_to(this.get_max_x() / 2, this.get_max_y() / 2);
 	});
-	this.addEventListener("cancel", e => {
-		if (e.detail == "outside") e.preventDefault();
-	});
 	this.addEventListener("close", e => {
 		if (e.detail == "ok") {
 			// 実行を押した
@@ -1587,9 +1584,6 @@ function OwnConvertDialog_create(){
 	this.add_dialog_button(ok_btn, "ok");
 	this.add_dialog_button(cancel_btn, "cancel");
 	
-	this.addEventListener("cancel", e => {
-		if (e.detail == "outside") e.preventDefault();
-	});
 	this.addEventListener("close", e => this.ev_close(e));
 }
 
