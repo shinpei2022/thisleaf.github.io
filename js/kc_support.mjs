@@ -488,7 +488,7 @@ function set_search_warning(reports){
 
 	if (overflow.length > 0) {
 		let title = ELEMENT("div.title");
-		title.textContent = "所持数を超えて装備を使用しています(不足分は一時的に補って探索します)";
+		title.textContent = "所持数を超えて装備を使用しています(不足分は一時的に補って探索します)。";
 		elem.appendChild(title);
 
 		let list = ELEMENT("ul");
