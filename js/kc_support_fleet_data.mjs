@@ -66,6 +66,8 @@ Object.assign(SupportFleetData.prototype, {
 	set_json_MT      : SupportFleetData_set_json_MT,
 	
 	verify                 : SupportFleetData_verify,
+	absorb_shortages       : SupportFleetData_absorb_shortages,
+	get_shortage_report    : SupportFleetData_get_shortage_report,
 	modify_remainings      : SupportFleetData_modify_remainings,
 	modify_fixed_equips_ssd: SupportFleetData_modify_fixed_equips_ssd,
 	modify_fixed_equips    : SupportFleetData_modify_fixed_equips,
@@ -279,6 +281,77 @@ function SupportFleetData_verify(countup_ssd = false){
 	return true;
 }
 
+
+/**
+ * 所持数を超えて使用されている装備を、探索できる状態に補正する。
+ *
+ * 装備ロックや本隊での使用指定により、実際の所持数より多く装備を使う状態に
+ * なっていると、そのままでは探索できない。この処理は、そうした装備の所持数を
+ * 使用数まで一時的に水増しすることで、超過を許容したまま探索を続行させる。
+ *
+ * 水増しした数(＝不足していた数)は、発生源ごとに装備単位で記録され、
+ * あとで警告用の報告としてまとめて取り出せる。
+ *
+ * 補正するのは探索用に複製された所持数データなので、
+ * 画面上の所持数入力そのものには影響しない。
+ *
+ * @param {string} source 超過の発生源。"main"=本隊での使用 / "fixed"=装備ロック
+ * @alias SupportFleetData#absorb_shortages
+ */
+function SupportFleetData_absorb_shortages(source){
+	for (let own of this.own_list) {
+		for (let i=0; i<own.rem_counts.length; i++) {
+			if (own.rem_counts[i] < 0) {
+				// 不足分だけ所持数を水増しして残り数を0に戻す
+				let lack = -own.rem_counts[i];
+				own.total_counts[i] += lack;
+				own.rem_counts[i] = 0;
+				if (!own.shortage_absorbed) own.shortage_absorbed = {};
+				own.shortage_absorbed[source] = (own.shortage_absorbed[source] || 0) + lack;
+			}
+		}
+		own.remaining = own.rem_counts.reduce((a, c) => a + c, 0);
+	}
+}
+
+/**
+ * 所持数を水増しして探索を続けた装備の一覧を、警告表示用にまとめて返す。
+ *
+ * 補正された装備1種ごとに、次の情報を持つオブジェクトを返す:
+ *   own      : 対象の装備データ
+ *   owned    : 補正前の所持数
+ *   needed   : 使用に必要な数 (owned + shortage)
+ *   shortage : 不足していた数 (発生源の合計)
+ *   main     : 不足のうち本隊での使用によるもの
+ *   fixed    : 不足のうち装備ロックによるもの
+ *
+ * @returns {{own:OwnEquipmentData, owned:number, needed:number, shortage:number, main:number, fixed:number}[]}
+ * @alias SupportFleetData#get_shortage_report
+ */
+function SupportFleetData_get_shortage_report(){
+	let reports = [];
+	for (let own of this.own_list) {
+		let absorbed = own.shortage_absorbed;
+		if (!absorbed) continue;
+
+		let main = absorbed.main || 0;
+		let fixed = absorbed.fixed || 0;
+		let shortage = main + fixed;
+		if (shortage > 0) {
+			// 現在の所持数は水増し後なので、水増し分を引くと補正前の所持数
+			let needed = own.total_counts.reduce((a, c) => a + c, 0);
+			reports.push({
+				own: own,
+				owned: needed - shortage,
+				needed: needed,
+				shortage: shortage,
+				main: main,
+				fixed: fixed,
+			});
+		}
+	}
+	return reports;
+}
 
 // 改修値に矛盾があっても、適当に修正する(rem_counts)
 function SupportFleetData_modify_remainings(){

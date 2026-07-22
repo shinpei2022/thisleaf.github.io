@@ -233,6 +233,9 @@ async function start_kome_console(){
 
 // DOM の関数とイベント ----------------------------------------------------------------------------
 function load_form(prepare){
+	// 前回の不足警告をクリア(必要なら prepare 内で再表示)
+	set_search_warning(null);
+
 	let fleet_data = new SupportFleetData();
 	fleet_data.set_own_data(own_equipment_form.get_calc_data());
 	
@@ -246,15 +249,14 @@ function load_form(prepare){
 	if (prepare) {
 		// 本隊装備数のエラーは大目に見る
 		fleet_data.modify_remainings();
-		// 本隊装備数と所持数の矛盾
+		// 本隊装備数と所持数の矛盾は止めずに所持数を使用数まで一時的に引き上げて続行(不足を警告)
 		if (!fleet_data.verify()) {
-			set_search_comment("所持数と本隊装備数に矛盾があります");
-			return null;
+			fleet_data.absorb_shortages("main");
 		}
-		
+
 		// 固定をカウント
 		fleet_data.countup_equipment(false, true);
-		
+
 		// 装備の確認
 		// 数を入力できない装備/除外装備について
 		//   固定→そのまま
@@ -262,27 +264,29 @@ function load_form(prepare){
 		fleet_data.clear_slots(true, false, false, true);
 		// 非固定をカウント
 		fleet_data.countup_equipment(true, false);
-		
+
 		// 固定以外で矛盾→装備解除
 		if (!fleet_data.verify()) {
 			console.log("装備に矛盾あり、非固定全解除");
 			fleet_data.countup_equipment(true, false, -1);
 			fleet_data.clear_slots(true, false);
-			
+
 			// 固定でも矛盾→修正を試みる
 			if (!fleet_data.verify()) {
 				console.log("固定に矛盾あり、修正を試みます");
 				fleet_data.modify_fixed_equips();
-				
-				// 修正不可→エラー
+
+				// 修正不可でも止めずに所持数を使用数まで一時的に引き上げて続行(不足を警告)
 				if (!fleet_data.verify()) {
-					set_search_comment("所持数と装備の固定数に矛盾があります");
-					return null;
+					fleet_data.absorb_shortages("fixed");
 				}
 			}
 		}
+
+		// 所持数を超えて使用している装備の警告を表示
+		set_search_warning(fleet_data.get_shortage_report());
 	}
-	
+
 	fleet_data.calc_bonus();
 	return fleet_data;
 }
@@ -444,6 +448,60 @@ function refresh_search_tools(){
 
 function set_search_comment(text){
 	DOM("optimize_comment").textContent = text;
+}
+
+/**
+ * 所持数を超えて使用している装備の警告を表示する
+ * (探索中/終了メッセージで消えない、#optimize_comment 下の専用領域に表示)
+ * 所持数が0(未登録)の装備は「登録を推奨」、所持数>0での超過は「不足」として分けて表示する。
+ * @param {{own:Object, owned:number, needed:number, shortage:number, main:number, fixed:number}[]} reports
+ */
+function set_search_warning(reports){
+	let elem = DOM("optimize_warning");
+	if (!elem) return;
+
+	elem.textContent = "";
+
+	if (!reports || reports.length == 0) {
+		elem.classList.remove("show");
+		return;
+	}
+
+	let name_of = r => r.own.csv_data ? Util.unescape_charref(r.own.csv_data.name) : ("装備ID " + r.own.id);
+	// 使用内訳(本隊装備 / 装備ロック)
+	let source_of = r => {
+		let parts = [];
+		if (r.main > 0)  parts.push("本隊装備 " + r.main + "個");
+		if (r.fixed > 0) parts.push("装備ロック " + r.fixed + "個");
+		return parts.join(" / ");
+	};
+
+	// 所持数が0(未登録)のもの と 所持数>0で超過しているもの に分ける
+	let unregistered = reports.filter(r => r.owned == 0);
+	let overflow     = reports.filter(r => r.owned > 0);
+
+	if (unregistered.length > 0) {
+		let msg = ELEMENT("div.title");
+		msg.textContent = "装備の所持数が未登録です。「装備」タブから「所持装備の反映」をしてください。";
+		elem.appendChild(msg);
+	}
+
+	if (overflow.length > 0) {
+		let title = ELEMENT("div.title");
+		title.textContent = "所持数を超えて装備を使用しています(不足分は一時的に補って探索します)";
+		elem.appendChild(title);
+
+		let list = ELEMENT("ul");
+		for (let r of overflow) {
+			let li = ELEMENT("li");
+			li.textContent = name_of(r) + "：所持" + r.owned + "個・不足" + r.shortage
+				+ "個（超過内訳: " + source_of(r) + "）";
+			list.appendChild(li);
+		}
+		elem.appendChild(list);
+	}
+
+	elem.classList.add("show");
 }
 
 /**
