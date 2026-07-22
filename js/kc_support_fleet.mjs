@@ -893,13 +893,39 @@ function ImportDeckDialog_parse_deckbuilder_text(text, load_fleets){
 		for (let s=1; s<=6; s++) {
 			let ship = fleet["s" + s];
 			const tempData = new SupportShipData("");
-			// id, lv, 運, 増設有無, 優先度 設定
+
+			// 装備の読み込み (index 5 が増設)
+			// equipment_ids/stars/fixes は長さ6の配列 (0～4:通常スロット, 5:増設)
+			const equipment_ids   = new Array(6).fill(0);
+			const equipment_stars = new Array(6).fill(0);
+			const equipment_fixes = new Array(6).fill(false);
+			const items = ship?.items;
+			if (items) {
+				for (let i=0; i<5; i++) {
+					const item = items["i" + (i + 1)];
+					if (item && item.id) {
+						equipment_ids[i]   = Number(item.id) || 0;
+						equipment_stars[i] = Number(item.rf) || 0;
+					}
+				}
+				// 増設
+				const ex_item = items.ix;
+				if (ex_item && ex_item.id) {
+					equipment_ids[5]   = Number(ex_item.id) || 0;
+					equipment_stars[5] = Number(ex_item.rf) || 0;
+				}
+			}
+
+			// id, lv, 運, 増設有無, 装備, 優先度 設定
 			const ship_data = {
 				...tempData,
 				ship_id: String(ship?.id || ""),
 				input_level: ship?.lv,
 				input_luck: ship?.luck,
 				exslot_available: ship?.exa ? 1 : 0,
+				equipment_ids,
+				equipment_stars,
+				equipment_fixes,
 				priority: 3
 			};
 			fleet_data.ships.push(ship_data);
