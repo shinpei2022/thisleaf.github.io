@@ -1034,7 +1034,7 @@ function OwnEquipmentForm_create(){
 			for (let d of csv_equiplist) {
 				if (d.category != cate) continue;
 				
-				if (def.ignore_zero_param) {
+				if (def.ignore_zero_param && d.name !== "通信装置&要員") {
 					// 火力か命中がついているもののみ
 					if (d.firepower == 0 && d.accuracy == 0) continue;
 				}
