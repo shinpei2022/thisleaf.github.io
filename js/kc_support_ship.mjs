@@ -1097,9 +1097,10 @@ function SupportShip_ssd_to_form(){
 			val = ssd.equipment_ids[i] || "";
 			fix = ssd.equipment_fixes[i] ?? false;
 			star = ssd.equipment_stars[i] ?? 0;
-			if (!valid(info.slot_equipables[i], +val, star)) {
+			if (val && !valid(info.slot_equipables[i], +val, star)) {
 				val = "";
 				star = 0;
+				fix = false;
 			}
 		}
 		this.equipment_selects[i].set_id_star(val, star);
@@ -1114,9 +1115,10 @@ function SupportShip_ssd_to_form(){
 		ex_val = ssd.equipment_ids[r] || "";
 		ex_fix = ssd.equipment_fixes[r] ?? false;
 		ex_star = ssd.equipment_stars[r] ?? 0;
-		if (!valid(info.exslot_equipable, +ex_val, ex_star)) {
+		if (ex_val && !valid(info.exslot_equipable, +ex_val, ex_star)) {
 			ex_val = "";
 			ex_star = 0;
+			ex_fix = false;
 		}
 	}
 	this.ex_equipment_select.set_id_star(ex_val, ex_star);

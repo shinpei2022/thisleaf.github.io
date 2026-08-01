@@ -316,15 +316,17 @@ function SupportShipData_generate_slots(){
 		let id = this.equipment_ids[i] ?? 0;
 		let star = this.equipment_stars[i] ?? 0;
 		let eqab = this.equipable_info.slot_equipables[i];
+		let fix = this.equipment_fixes[i] ?? false;
 
-		if (!id || !equipable_id_star(eqab, id, star)) {
+		if (id && !equipable_id_star(eqab, id, star)) {
 			// 装備不可
 			id = 0;
 			star = 0;
+			fix = false;
 		}
 		slots.push(new EquipmentSlot(id, null, star));
 		eqabs.push(eqab);
-		fixes.push(this.equipment_fixes[i] ?? false);
+		fixes.push(fix);
 	}
 
 	if (!this.empty() && this.exslot_available) {
@@ -332,14 +334,16 @@ function SupportShipData_generate_slots(){
 		let id = this.equipment_ids[i] ?? 0;
 		let star = this.equipment_stars[i] ?? 0;
 		let eqab = this.equipable_info.exslot_equipable;
+		let fix = this.equipment_fixes[i] ?? false;
 
-		if (!id || !equipable_id_star(eqab, id, star)) {
+		if (id && !equipable_id_star(eqab, id, star)) {
 			id = 0;
 			star = 0;
+			fix = false;
 		}
 		slots.push(new EquipmentSlot(id, null, star));
 		eqabs.push(eqab);
-		fixes.push(this.equipment_fixes[i] ?? false);
+		fixes.push(fix);
 	}
 	
 	this.allslot_equipment = slots;
@@ -670,14 +674,18 @@ function SupportShipData_sort_equipment(sort_by, use_category){
 		
 		// 固定
 		if (this.allslot_fixes[i] || this.allslot_fixes[j]) return 0;
-		// 空チェック
-		if (eq_a && !eq_b) return -1;
-		if (!eq_a && eq_b) return 1;
-		if (!eq_a && !eq_b) return 0;
 		// 交換可能かどうか
+		// 装備できないスロットへ移動させないよう、空きを前に詰める場合も判定する
+		// 改修値条件つきの装備があるため、改修値も込みで判定する
 		let eqab_a = this.allslot_equipables[i];
 		let eqab_b = this.allslot_equipables[j];
-		if (!eqab_a[b.equipment_id] || !eqab_b[a.equipment_id]) return 0;
+		// 空チェック
+		if (eq_a && !eq_b) return -1;
+		if (!eq_a && eq_b) return equipable_id_star(eqab_a, b.equipment_id, b.improvement) ? 1 : 0;
+		if (!eq_a && !eq_b) return 0;
+
+		if ( !equipable_id_star(eqab_a, b.equipment_id, b.improvement) ||
+		!equipable_id_star(eqab_b, a.equipment_id, a.improvement) ) return 0;
 		
 		return _compare_equip(a, b);
 	};
