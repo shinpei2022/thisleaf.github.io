@@ -317,10 +317,11 @@ function SupportFleetData_modify_fixed_equips_ssd(ssd){
 		let star = ssd.allslot_equipment[i].improvement;
 		let own = this.own_map[id];
 		if (!id || !own || own.rem_counts[star] >= 0) continue;
-		
+		let eqab = ssd.allslot_equipables[i];
 		// 改修値の変更を試みる
+		// 改修値条件つきの装備は、条件を満たす改修値にしか変更できない
 		for (let j=own.rem_counts.length-1; j>=0; j--) {
-			if (own.rem_counts[j] > 0) {
+		if (own.rem_counts[j] > 0 && equipable_id_star(eqab, id, j)) {
 				own.rem_counts[j]--;
 				own.rem_counts[star]++;
 				ssd.allslot_equipment[i].improvement = j;

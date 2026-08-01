@@ -11,6 +11,7 @@ import {
 	EquipmentSlot,
 	EquipmentBonusData,
 	EquipmentBonus,
+	equipable_id_star,
 } from "./kc_equipment.mjs";
 import * as Damage from "./kc_damage_utility.mjs";
 import {DOMDialog} from "./dom_dialog.mjs";
@@ -1082,6 +1083,11 @@ function SupportShip_ssd_to_form(){
 	// 装備フォームの再生成
 	this.recreate_equipform();
 
+	// 装備不可(改修値条件を満たさない場合を含む)なら空欄にする
+	// 条件を満たさない組み合わせが残っていることがある
+	let valid = (eqab, id, star) => id && equipable_id_star(eqab, id, star);
+	let info = ssd.equipable_info;
+
 	// 装備フォームにデータをセット
 	for (let i=0; i<this.equipment_selects.length; i++) {
 		let val = "", fix = false;
@@ -1091,6 +1097,10 @@ function SupportShip_ssd_to_form(){
 			val = ssd.equipment_ids[i] || "";
 			fix = ssd.equipment_fixes[i] ?? false;
 			star = ssd.equipment_stars[i] ?? 0;
+			if (!valid(info.slot_equipables[i], +val, star)) {
+				val = "";
+				star = 0;
+			}
 		}
 		this.equipment_selects[i].set_id_star(val, star);
 		this.e_slot_fixes[i].checked = fix;
@@ -1104,6 +1114,10 @@ function SupportShip_ssd_to_form(){
 		ex_val = ssd.equipment_ids[r] || "";
 		ex_fix = ssd.equipment_fixes[r] ?? false;
 		ex_star = ssd.equipment_stars[r] ?? 0;
+		if (!valid(info.exslot_equipable, +ex_val, ex_star)) {
+			ex_val = "";
+			ex_star = 0;
+		}
 	}
 	this.ex_equipment_select.set_id_star(ex_val, ex_star);
 	this.e_exslot_fix.checked = ex_fix;
