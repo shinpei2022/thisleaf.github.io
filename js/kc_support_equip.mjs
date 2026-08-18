@@ -31,7 +31,9 @@ Object.assign(OwnEquipmentData.prototype, {
 	total_counts: null, // array
 	// 探索除外
 	exclude: false,
-	
+	// 艦隊読込時に自動で固定する
+	auto_fix: false,
+
 	set_id          : OwnEquipmentData_set_id,
 	reset           : OwnEquipmentData_reset,
 	is_valid        : OwnEquipmentData_is_valid,
@@ -98,6 +100,7 @@ function OwnEquipmentData_reset(){
 	this.main_counts.fill(0);
 	this.total_counts.fill(0);
 	this.exclude = false;
+	this.auto_fix = false;
 }
 
 // 入力に矛盾がないか
@@ -173,7 +176,8 @@ function OwnEquipmentData_clone(){
 		out.total_counts[i] = this.total_counts[i];
 	}
 	out.exclude = this.exclude;
-	
+	out.auto_fix = this.auto_fix;
+
 	if (this.rem_counts) out.rem_counts = this.rem_counts.concat();
 	if (this.fix_counts) out.fix_counts = this.fix_counts.concat();
 	out.remaining = this.remaining;
@@ -213,6 +217,7 @@ function OwnEquipmentData_get_json(){
 	if (main) json.main = main;
 	if (own) json.own = own;
 	if (this.exclude) json.exclude = true;
+	if (this.auto_fix) json.auto_fix = true;
 	return json;
 }
 
@@ -230,12 +235,13 @@ function OwnEquipmentData_set_json(json){
 	}
 	
 	this.exclude = json.exclude || false;
+	this.auto_fix = json.auto_fix || false;
 }
 
 // データが空っぽかどうか
 // jsonデータとして保存しなくてもよいなら true
 function OwnEquipmentData_empty_json(){
-	return this.get_main_count() == 0 && this.get_total_count() == 0 && !this.exclude;
+	return this.get_main_count() == 0 && this.get_total_count() == 0 && !this.exclude && !this.auto_fix;
 }
 
 // マルチスレッド用json  postMessage() でコピーされるはず
@@ -418,6 +424,8 @@ Object.assign(OwnEquipmentRow.prototype, {
 	e_total        : null,
 	e_exclude      : null,
 	e_exclude_check: null,
+	e_fix          : null,
+	e_fix_check    : null,
 	e_comment      : null,
 	
 	// データが変更された場合に呼ばれる
@@ -433,6 +441,7 @@ Object.assign(OwnEquipmentRow.prototype, {
 	ev_click_left    : OwnEquipmentRow_ev_click_left,
 	ev_click_right   : OwnEquipmentRow_ev_click_right,
 	ev_change_exclude: OwnEquipmentRow_ev_change_exclude,
+	ev_change_fix    : OwnEquipmentRow_ev_change_fix,
 });
 
 
@@ -460,12 +469,13 @@ function OwnEquipmentRow_static_create_row(out, is_header = false){
 		out.e_main      = ELEMENT("div", "", "eq_main"),
 		out.e_total     = ELEMENT("div", "", "eq_total"),
 		out.e_exclude   = ELEMENT("div", "", "eq_exclude"),
+		out.e_fix       = ELEMENT("div", "", "eq_fix"),
 		out.e_comment   = ELEMENT("div", "", "eq_comment"),
 	]);
-	
+
 	if (is_header) {
 		out.e_row.classList.add("eq_rowheader");
-		
+
 	} else {
 		out.e_main.classList.add("arrow_input");
 		NODE(out.e_main, [
@@ -473,9 +483,13 @@ function OwnEquipmentRow_static_create_row(out, is_header = false){
 			out.e_main_count = ELEMENT("span", "", "input_number"),
 			out.e_main_right = ELEMENT("span", "", "right_arrow"),
 		]);
-		
+
 		NODE(out.e_exclude, [
 			out.e_exclude_check = ELEMENT("input", {type: "checkbox"}),
+		]);
+
+		NODE(out.e_fix, [
+			out.e_fix_check = ELEMENT("input", {type: "checkbox"}),
 		]);
 	}
 	
@@ -496,7 +510,8 @@ function OwnEquipmentRow_static_get_header_row(){
 		obj.e_main     .textContent = "本隊";
 		obj.e_total    .textContent = "所持";
 		obj.e_exclude  .textContent = "除外";
-		
+		obj.e_fix      .textContent = "固定";
+
 		OwnEquipmentRow.e_header_row = obj.e_row;
 		row = obj.e_row;
 	}
@@ -513,6 +528,7 @@ function OwnEquipmentRow(data){
 	this.e_main_left.addEventListener("click", e => this.ev_click_left(e));
 	this.e_main_right.addEventListener("click", e => this.ev_click_right(e));
 	this.e_exclude_check.addEventListener("change", e => this.ev_change_exclude(e));
+	this.e_fix_check.addEventListener("change", e => this.ev_change_fix(e));
 }
 
 function OwnEquipmentRow_refresh(){
@@ -530,6 +546,7 @@ function OwnEquipmentRow_refresh(){
 	this.e_main_count   .textContent = data.get_main_count();
 	this.e_total        .textContent = data.get_total_count();
 	this.e_exclude_check.checked     = data.exclude;
+	this.e_fix_check    .checked     = data.auto_fix;
 	this.e_comment      .textContent = data.get_comment_text();
 	
 	this.e_main      .classList.toggle("error", !good);
@@ -571,6 +588,11 @@ function OwnEquipmentRow_ev_click_right(e){
 
 function OwnEquipmentRow_ev_change_exclude(e){
 	this.data.exclude = this.e_exclude_check.checked;
+	this.call_datachange();
+}
+
+function OwnEquipmentRow_ev_change_fix(e){
+	this.data.auto_fix = this.e_fix_check.checked;
 	this.call_datachange();
 }
 

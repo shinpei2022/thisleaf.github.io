@@ -686,11 +686,40 @@ function ev_click_import_deck_dialog(){
 	dialog.create();
 	dialog.addEventListener("exit", e => dialog.dispose());
 	dialog.addEventListener("import", e => { // importイベントでデータを受け取る
+		apply_auto_fix(e.detail);
 		support_fleet_tab.setFleetsJson(e.detail);
 		save_userdata();
 		// dialog.disposeはexitイベントのほうでやらせる
 	});
 	dialog.show();
+}
+
+// 装備タブで「固定」にチェックされた装備を、読み込んだ艦隊で自動的に固定する
+// fleets: setFleetsJson に渡す形式 (array of {name, ships: [ship_data, ...]})
+function apply_auto_fix(fleets){
+	if (!fleets || !own_equipment_form) return;
+
+	// 固定対象の装備IDの集合
+	let fix_ids = new Set;
+	for (let data of own_equipment_form.data_array) {
+		if (data.auto_fix) fix_ids.add(data.id);
+	}
+	if (fix_ids.size == 0) return;
+
+	for (let fleet of fleets) {
+		for (let ship of fleet?.ships ?? []) {
+			let ids = ship?.equipment_ids;
+			if (!ids) continue;
+			if (!ship.equipment_fixes) {
+				ship.equipment_fixes = new Array(ids.length).fill(false);
+			}
+			for (let i=0; i<ids.length; i++) {
+				if (ids[i] && fix_ids.has(ids[i])) {
+					ship.equipment_fixes[i] = true;
+				}
+			}
+		}
+	}
 }
 
 // データ変換(支援艦隊出力)
